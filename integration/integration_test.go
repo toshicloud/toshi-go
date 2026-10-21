@@ -42,7 +42,7 @@ const (
 func TestIntegration(t *testing.T) {
 	bin := os.Getenv("TOSHI_INTEGRATION_BIN")
 	if bin == "" {
-		t.Skip("set TOSHI_INTEGRATION_BIN to a toshi binary, or run scripts/integration.sh")
+		t.Skip("TOSHI_INTEGRATION_BIN is not set: it names the toshi binary this test runs against")
 	}
 	bin, err := filepath.Abs(bin)
 	if err != nil {
