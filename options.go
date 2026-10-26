@@ -1,6 +1,7 @@
 package toshi
 
 import (
+	"context"
 	"net/http"
 	"time"
 
@@ -13,6 +14,7 @@ type Option func(*config)
 // config holds what an Option sets and what the environment fills.
 type config struct {
 	server         string
+	tokenSource    func(context.Context) (string, error)
 	token          string
 	tokenFile      string
 	caFile         string
@@ -31,14 +33,32 @@ func WithServer(url string) Option {
 	return func(c *config) { c.server = url }
 }
 
+// WithTokenSource sets a function the client calls for the token of every
+// HTTP request, with that request's context, so a token that changes is used
+// without a new Client. It wins over WithToken, WithTokenFile, TOSHI_TOKEN and
+// TOSHI_TOKEN_FILE, and New then reads none of them. The client calls it
+// concurrently and once for each try of a call, so it must be safe for
+// concurrent use and fast: when getting a token is slow, cache it and refresh
+// it outside the call. The token is trimmed. An error or an empty token fails
+// the call with CodeUnauthenticated before the request is sent, and the call
+// is not retried.
+func WithTokenSource(source func(context.Context) (string, error)) Option {
+	return func(c *config) { c.tokenSource = source }
+}
+
 // WithToken sets the workspace API token. It wins over WithTokenFile,
-// TOSHI_TOKEN and TOSHI_TOKEN_FILE.
+// TOSHI_TOKEN and TOSHI_TOKEN_FILE; WithTokenSource wins over it.
 func WithToken(token string) Option {
 	return func(c *config) { c.token = token }
 }
 
 // WithTokenFile sets the file holding the token. Its contents are trimmed,
-// and an empty file is an error.
+// and an empty file is an error. New reads the file, and before each request
+// the client reads it again when its modification time or size has changed,
+// so a rotated token is used without a new Client; a file that has become
+// empty or unreadable fails the call with CodeUnauthenticated. It wins over
+// TOSHI_TOKEN and TOSHI_TOKEN_FILE, which is read the same way;
+// WithTokenSource and WithToken win over it.
 func WithTokenFile(path string) Option {
 	return func(c *config) { c.tokenFile = path }
 }
