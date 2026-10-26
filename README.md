@@ -203,8 +203,8 @@ An interceptor passed that way runs inside the retry, once for each try.
 
 Every request carries the User-Agent
 `toshi-go/<version> connect-go/<version> (<Go version>)`, for example
-`toshi-go/0.2.1 connect-go/1.21.1 (go1.26.0)`. `WithUserAgent("myapp/1.2")`
-puts your product in front: `myapp/1.2 toshi-go/0.2.1 ...`. `toshi.Version`
+`toshi-go/0.3.0 connect-go/1.21.1 (go1.26.0)`. `WithUserAgent("myapp/1.2")`
+puts your product in front: `myapp/1.2 toshi-go/0.3.0 ...`. `toshi.Version`
 is this module's version.
 ## Testing with toshitest
 

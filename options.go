@@ -123,7 +123,7 @@ func WithConnectOptions(opts ...connect.ClientOption) Option {
 // WithUserAgent puts product, for example "myapp/1.2", in front of the
 // User-Agent every request carries, which is otherwise
 // "toshi-go/<Version> connect-go/<Connect version> (<Go version>)", for
-// example "toshi-go/0.2.1 connect-go/1.21.1 (go1.26.0)". An empty product
+// example "toshi-go/0.3.0 connect-go/1.21.1 (go1.26.0)". An empty product
 // adds nothing.
 func WithUserAgent(product string) Option {
 	return optionFunc(func(c *config) { c.product = product })
