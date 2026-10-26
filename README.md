@@ -11,17 +11,29 @@ go.toshicloud.io/toshi.
 
 ## Using the client
 
+<!-- ExampleNew -->
 ```go
 import (
-	"go.toshicloud.io/toshi"
+	"context"
+	"fmt"
+	"log"
+
 	"github.com/toshicloud/toshi-api/workspacev1"
+	"go.toshicloud.io/toshi"
 )
 
+ctx := context.Background()
 client, err := toshi.New(toshi.WithScope("default", "production"))
 if err != nil {
-	return err
+	log.Fatal(err)
 }
 jobs, err := client.Workload.Jobs.List(ctx, &workspacev1.ListJobsRequest{})
+if err != nil {
+	log.Fatal(err)
+}
+for _, job := range jobs.GetJobs() {
+	fmt.Println(job.GetId(), job.GetStatus().GetState())
+}
 ```
 
 `Client` has one field per service. `Workload` is written by this module: a
