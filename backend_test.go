@@ -14,8 +14,8 @@ import (
 	"connectrpc.com/connect"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
-	workspacev1 "github.com/toshicloud/toshi-api/workspacev1"
-	workspacev1connect "github.com/toshicloud/toshi-api/workspacev1/workspacev1connect"
+	workspacev1 "go.toshicloud.io/api/workspacev1"
+	workspacev1connect "go.toshicloud.io/api/workspacev1/workspacev1connect"
 )
 
 // backend serves the ten services from hooks; an unhooked call is

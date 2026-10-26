@@ -3,7 +3,7 @@ package toshi
 import (
 	"fmt"
 
-	workspacev1 "github.com/toshicloud/toshi-api/workspacev1"
+	workspacev1 "go.toshicloud.io/api/workspacev1"
 )
 
 // ExitError reports a command that ended with a non-zero status, or was

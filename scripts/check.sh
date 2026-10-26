@@ -10,9 +10,13 @@ go vet ./...
 
 deps="$(go list -deps ./...)"
 module="$(go list -m)"
-other="$(grep -E '^github\.com/toshicloud/' <<<"$deps" | grep -vE "^(github\.com/toshicloud/toshi-api|${module//./\\.})(/|$)" || true)"
+if grep -qE '^github\.com/toshicloud/toshi-api(/|$)' <<<"$deps"; then
+  echo "the SDK depends on the API module go.toshicloud.io/api; the old github.com path is not allowed" >&2
+  exit 1
+fi
+other="$(grep -E '^(github\.com/toshicloud/|go\.toshicloud\.io/)' <<<"$deps" | grep -vE "^(go\.toshicloud\.io/api|${module//./\\.})(/|$)" || true)"
 if [ -n "$other" ]; then
-  echo "the SDK may depend only on the public API module github.com/toshicloud/toshi-api among github.com/toshicloud modules; it depends on:" >&2
+  echo "the SDK may depend only on the public API module go.toshicloud.io/api among toshicloud modules; it depends on:" >&2
   echo "$other" >&2
   exit 1
 fi

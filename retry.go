@@ -13,7 +13,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
-	workspacev1connect "github.com/toshicloud/toshi-api/workspacev1/workspacev1connect"
+	workspacev1connect "go.toshicloud.io/api/workspacev1/workspacev1connect"
 )
 
 // retryClass says what one procedure's retries are.

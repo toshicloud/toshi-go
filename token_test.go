@@ -13,8 +13,8 @@ import (
 
 	"connectrpc.com/connect"
 
-	workspacev1 "github.com/toshicloud/toshi-api/workspacev1"
-	workspacev1connect "github.com/toshicloud/toshi-api/workspacev1/workspacev1connect"
+	workspacev1 "go.toshicloud.io/api/workspacev1"
+	workspacev1connect "go.toshicloud.io/api/workspacev1/workspacev1connect"
 
 	"go.toshicloud.io/toshi"
 	"go.toshicloud.io/toshi/toshitest"

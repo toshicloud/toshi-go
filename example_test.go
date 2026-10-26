@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/toshicloud/toshi-api/workspacev1"
+	"go.toshicloud.io/api/workspacev1"
 
 	"go.toshicloud.io/toshi"
 )
