@@ -44,11 +44,11 @@ func TestTokenSourceIsAskedForEachRequest(t *testing.T) {
 	ctx := context.WithValue(context.Background(), tokenKey{}, "call")
 
 	for range 2 {
-		if _, err := client.Project.ListProjects(ctx, connect.NewRequest(&workspacev1.ListProjectsRequest{})); err != nil {
+		if _, err := client.Project().ListProjects(ctx, connect.NewRequest(&workspacev1.ListProjectsRequest{})); err != nil {
 			t.Fatalf("ListProjects: %v", err)
 		}
 	}
-	if _, err := client.Workload.Jobs.Get(ctx, &workspacev1.GetJobRequest{}); err != nil {
+	if _, err := client.Workload().Jobs().Get(ctx, &workspacev1.GetJobRequest{}); err != nil {
 		t.Fatalf("GetJob: %v", err)
 	}
 	var got []string
@@ -76,7 +76,7 @@ func TestTokenSourceErrorFailsTheCall(t *testing.T) {
 		toshi.WithRetryPolicy(fastPolicy()),
 	)
 
-	_, err := client.Workload.Jobs.Get(context.Background(), &workspacev1.GetJobRequest{})
+	_, err := client.Workload().Jobs().Get(context.Background(), &workspacev1.GetJobRequest{})
 	if connect.CodeOf(err) != connect.CodeUnauthenticated || !errors.Is(err, failure) {
 		t.Fatalf("GetJob: code %v, err %v", connect.CodeOf(err), err)
 	}
@@ -106,7 +106,7 @@ func TestTokenFileIsReadAgainWhenItChanges(t *testing.T) {
 		t.Fatalf("New: %v", err)
 	}
 	list := func() error {
-		_, err := client.Project.ListProjects(context.Background(), connect.NewRequest(&workspacev1.ListProjectsRequest{}))
+		_, err := client.Project().ListProjects(context.Background(), connect.NewRequest(&workspacev1.ListProjectsRequest{}))
 		return err
 	}
 	lastAuthorization := func() string {

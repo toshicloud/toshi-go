@@ -21,15 +21,21 @@ type workloadCall struct {
 // Jobs, a sandbox's under Sandboxes, a service's under Services, and the
 // calls that span the three on Workload itself.
 type WorkloadClient struct {
-	// Jobs holds a job's calls.
-	Jobs JobsClient
-	// Sandboxes holds a sandbox's calls.
-	Sandboxes SandboxesClient
-	// Services holds a service's calls.
-	Services ServicesClient
+	jobs      JobsClient
+	sandboxes SandboxesClient
+	services  ServicesClient
 
 	call workloadCall
 }
+
+// Jobs holds a job's calls.
+func (w WorkloadClient) Jobs() JobsClient { return w.jobs }
+
+// Sandboxes holds a sandbox's calls.
+func (w WorkloadClient) Sandboxes() SandboxesClient { return w.sandboxes }
+
+// Services holds a service's calls.
+func (w WorkloadClient) Services() ServicesClient { return w.services }
 
 // JobsClient holds the calls of WorkloadService that act on a job.
 type JobsClient struct{ call workloadCall }
@@ -42,12 +48,12 @@ type ServicesClient struct{ call workloadCall }
 
 // newWorkloadClient builds the workload client over one generated client and
 // the SDK client whose retry policy its calls follow.
-func newWorkloadClient(client *Client, svc workspacev1connect.WorkloadServiceClient) WorkloadClient {
+func newWorkloadClient(client *Client, svc workspacev1connect.WorkloadServiceClient) *WorkloadClient {
 	call := workloadCall{client: client, svc: svc}
-	return WorkloadClient{
-		Jobs:      JobsClient{call: call},
-		Sandboxes: SandboxesClient{call: call},
-		Services:  ServicesClient{call: call},
+	return &WorkloadClient{
+		jobs:      JobsClient{call: call},
+		sandboxes: SandboxesClient{call: call},
+		services:  ServicesClient{call: call},
 		call:      call,
 	}
 }

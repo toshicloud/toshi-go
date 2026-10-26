@@ -81,7 +81,7 @@ func TestInterceptorSeesOneCallAcrossRetries(t *testing.T) {
 		})
 	caller := &callerInterceptor{}
 	client := tt.Client(toshi.WithRetryPolicy(fastPolicy()), toshi.WithInterceptors(caller))
-	if _, err := client.Workload.Jobs.Get(context.Background(), &workspacev1.GetJobRequest{Id: "job-1"}); err != nil {
+	if _, err := client.Workload().Jobs().Get(context.Background(), &workspacev1.GetJobRequest{Id: "job-1"}); err != nil {
 		t.Fatalf("GetJob: %v", err)
 	}
 	if tries.Load() != 3 || caller.unary.Load() != 1 {
@@ -95,7 +95,7 @@ func TestInterceptorRunsForStreams(t *testing.T) {
 	tt.Job("job-1").ExitCode(0)
 	caller := &callerInterceptor{}
 	client := tt.Client(toshi.WithInterceptors(caller))
-	watch, err := client.Workload.Jobs.WatchOutput(context.Background(), &workspacev1.WatchOutputRequest{Id: "job-1"})
+	watch, err := client.Workload().Jobs().WatchOutput(context.Background(), &workspacev1.WatchOutputRequest{Id: "job-1"})
 	if err != nil {
 		t.Fatalf("WatchOutput: %v", err)
 	}
@@ -124,7 +124,7 @@ func TestUserAgent(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			tt := toshitest.New(t)
 			tt.Job("job-1")
-			if _, err := tt.Client(tc.opts...).Workload.Jobs.Get(context.Background(), &workspacev1.GetJobRequest{Id: "job-1"}); err != nil {
+			if _, err := tt.Client(tc.opts...).Workload().Jobs().Get(context.Background(), &workspacev1.GetJobRequest{Id: "job-1"}); err != nil {
 				t.Fatalf("GetJob: %v", err)
 			}
 			if got := tt.Calls()[0].Header.Get("User-Agent"); got != tc.want {
@@ -139,7 +139,7 @@ func TestUserAgent(t *testing.T) {
 func TestConnectOptionsApply(t *testing.T) {
 	tt := toshitest.New(t)
 	client := tt.Client(toshi.WithConnectOptions(connect.WithSendMaxBytes(16)))
-	_, err := client.Workload.Jobs.Get(context.Background(), &workspacev1.GetJobRequest{Id: strings.Repeat("x", 64)})
+	_, err := client.Workload().Jobs().Get(context.Background(), &workspacev1.GetJobRequest{Id: strings.Repeat("x", 64)})
 	if connect.CodeOf(err) != connect.CodeResourceExhausted {
 		t.Fatalf("GetJob over the send limit: err %v, want RESOURCE_EXHAUSTED", err)
 	}

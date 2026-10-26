@@ -48,7 +48,7 @@ func ExampleOn() {
 			}, nil
 		})
 
-	response, err := tt.Client().Project.ListProjects(context.Background(), connect.NewRequest(&workspacev1.ListProjectsRequest{}))
+	response, err := tt.Client().Project().ListProjects(context.Background(), connect.NewRequest(&workspacev1.ListProjectsRequest{}))
 	if err != nil {
 		log.Fatal(err)
 	}

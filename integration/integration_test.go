@@ -166,7 +166,7 @@ func TestIntegration(t *testing.T) {
 	var firstID, secondID string
 
 	t.Run("ListProjects", func(t *testing.T) {
-		resp, err := client.Project.ListProjects(ctx, connect.NewRequest(&workspacev1.ListProjectsRequest{}))
+		resp, err := client.Project().ListProjects(ctx, connect.NewRequest(&workspacev1.ListProjectsRequest{}))
 		if err != nil {
 			t.Fatalf("ListProjects: %v", err)
 		}
@@ -194,7 +194,7 @@ func TestIntegration(t *testing.T) {
 				Spec:       &workspacev1.JobSpec{Command: &workspacev1.Command{Argv: []string{"true"}}},
 				RequestKey: key,
 			}
-			resp, err := client.Workload.Jobs.Create(ctx, req)
+			resp, err := client.Workload().Jobs().Create(ctx, req)
 			if err != nil {
 				t.Fatalf("CreateJob: %v", err)
 			}
@@ -216,14 +216,14 @@ func TestIntegration(t *testing.T) {
 	})
 
 	t.Run("GetAndList", func(t *testing.T) {
-		got, err := client.Workload.Jobs.Get(ctx, &workspacev1.GetJobRequest{Id: firstID})
+		got, err := client.Workload().Jobs().Get(ctx, &workspacev1.GetJobRequest{Id: firstID})
 		if err != nil {
 			t.Fatalf("GetJob: %v", err)
 		}
 		if got.GetJob().GetLabels()["suite"] != "sdk-integration" {
 			t.Fatalf("labels %v", got.GetJob().GetLabels())
 		}
-		list, err := client.Workload.Jobs.List(ctx, &workspacev1.ListJobsRequest{
+		list, err := client.Workload().Jobs().List(ctx, &workspacev1.ListJobsRequest{
 			Labels: map[string]string{"suite": "sdk-integration"},
 		})
 		if err != nil {
@@ -239,14 +239,14 @@ func TestIntegration(t *testing.T) {
 	})
 
 	t.Run("OtherServiceClients", func(t *testing.T) {
-		channels, err := wide.Channel.ListChannels(ctx, connect.NewRequest(&workspacev1.ListChannelsRequest{}))
+		channels, err := wide.Channel().ListChannels(ctx, connect.NewRequest(&workspacev1.ListChannelsRequest{}))
 		if err != nil {
 			t.Fatalf("ListChannels: %v", err)
 		}
 		if len(channels.Msg.GetChannels()) != 0 {
 			t.Fatalf("a workspace without a channel has %d", len(channels.Msg.GetChannels()))
 		}
-		volumes, err := wide.Volume.ListVolumes(ctx, connect.NewRequest(&workspacev1.ListVolumesRequest{}))
+		volumes, err := wide.Volume().ListVolumes(ctx, connect.NewRequest(&workspacev1.ListVolumesRequest{}))
 		if err != nil {
 			t.Fatalf("ListVolumes: %v", err)
 		}
@@ -257,7 +257,7 @@ func TestIntegration(t *testing.T) {
 
 	t.Run("MemberServiceClients", func(t *testing.T) {
 		t.Run("Workspace", func(t *testing.T) {
-			resp, err := wide.Workspace.GetWorkspace(ctx, connect.NewRequest(&workspacev1.GetWorkspaceRequest{}))
+			resp, err := wide.Workspace().GetWorkspace(ctx, connect.NewRequest(&workspacev1.GetWorkspaceRequest{}))
 			if err != nil {
 				t.Fatalf("GetWorkspace: %v", err)
 			}
@@ -267,7 +267,7 @@ func TestIntegration(t *testing.T) {
 		})
 
 		t.Run("HostJob", func(t *testing.T) {
-			resp, err := wide.HostJob.ListHostJobs(ctx, connect.NewRequest(&workspacev1.ListHostJobsRequest{}))
+			resp, err := wide.HostJob().ListHostJobs(ctx, connect.NewRequest(&workspacev1.ListHostJobsRequest{}))
 			if err != nil {
 				t.Fatalf("ListHostJobs: %v", err)
 			}
@@ -279,7 +279,7 @@ func TestIntegration(t *testing.T) {
 		})
 
 		t.Run("Host", func(t *testing.T) {
-			resp, err := wide.Host.ListHosts(ctx, connect.NewRequest(&workspacev1.ListHostsRequest{}))
+			resp, err := wide.Host().ListHosts(ctx, connect.NewRequest(&workspacev1.ListHostsRequest{}))
 			if err != nil {
 				t.Fatalf("ListHosts: %v", err)
 			}
@@ -291,7 +291,7 @@ func TestIntegration(t *testing.T) {
 		})
 
 		t.Run("Token", func(t *testing.T) {
-			resp, err := wide.Token.ListTokens(ctx, connect.NewRequest(&workspacev1.ListTokensRequest{}))
+			resp, err := wide.Token().ListTokens(ctx, connect.NewRequest(&workspacev1.ListTokensRequest{}))
 			if err != nil {
 				t.Fatalf("ListTokens: %v", err)
 			}
@@ -307,7 +307,7 @@ func TestIntegration(t *testing.T) {
 		})
 
 		t.Run("AuditEvent", func(t *testing.T) {
-			resp, err := wide.AuditEvent.ListAuditEvents(ctx, connect.NewRequest(&workspacev1.ListAuditEventsRequest{}))
+			resp, err := wide.AuditEvent().ListAuditEvents(ctx, connect.NewRequest(&workspacev1.ListAuditEventsRequest{}))
 			if err != nil {
 				t.Fatalf("ListAuditEvents: %v", err)
 			}
@@ -317,7 +317,7 @@ func TestIntegration(t *testing.T) {
 		})
 
 		t.Run("Filler", func(t *testing.T) {
-			resp, err := wide.Filler.ListFillers(ctx, connect.NewRequest(&workspacev1.ListFillersRequest{}))
+			resp, err := wide.Filler().ListFillers(ctx, connect.NewRequest(&workspacev1.ListFillersRequest{}))
 			if err != nil {
 				t.Fatalf("ListFillers: %v", err)
 			}
@@ -330,8 +330,8 @@ func TestIntegration(t *testing.T) {
 
 		t.Run("StorageProvider", func(t *testing.T) {
 			// StorageProviderService is closed to tenant tokens: the call
-			// reaching it and being refused proves the field's service.
-			_, err := wide.StorageProvider.ListStorageProviders(ctx, connect.NewRequest(&workspacev1.ListStorageProvidersRequest{}))
+			// reaching it and being refused proves the method's service.
+			_, err := wide.StorageProvider().ListStorageProviders(ctx, connect.NewRequest(&workspacev1.ListStorageProvidersRequest{}))
 			if connect.CodeOf(err) != connect.CodePermissionDenied {
 				t.Fatalf("ListStorageProviders: %v, want PERMISSION_DENIED", err)
 			}
@@ -341,7 +341,7 @@ func TestIntegration(t *testing.T) {
 	t.Run("WatchJobs", func(t *testing.T) {
 		watchCtx, watchCancel := context.WithTimeout(ctx, 20*time.Second)
 		defer watchCancel()
-		watch, err := client.Workload.Jobs.Watch(watchCtx, &workspacev1.WatchJobsRequest{})
+		watch, err := client.Workload().Jobs().Watch(watchCtx, &workspacev1.WatchJobsRequest{})
 		if err != nil {
 			t.Fatalf("WatchJobs: %v", err)
 		}
@@ -349,7 +349,7 @@ func TestIntegration(t *testing.T) {
 		if len(watch.Snapshot()) < 2 {
 			t.Fatalf("snapshot %v, want the created jobs", watch.Snapshot())
 		}
-		_, err = client.Workload.Jobs.Update(ctx, &workspacev1.UpdateJobRequest{
+		_, err = client.Workload().Jobs().Update(ctx, &workspacev1.UpdateJobRequest{
 			Id:         secondID,
 			Job:        &workspacev1.Job{Labels: map[string]string{"suite": "sdk-integration", "stage": "watch"}},
 			UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"labels"}},
@@ -374,7 +374,7 @@ func TestIntegration(t *testing.T) {
 	t.Run("Events", func(t *testing.T) {
 		watchCtx, watchCancel := context.WithTimeout(ctx, 20*time.Second)
 		defer watchCancel()
-		first, err := client.Workload.WatchEvents(watchCtx, &workspacev1.WatchEventsRequest{})
+		first, err := client.Workload().WatchEvents(watchCtx, &workspacev1.WatchEventsRequest{})
 		if err != nil {
 			t.Fatalf("WatchEvents: %v", err)
 		}
@@ -396,12 +396,12 @@ func TestIntegration(t *testing.T) {
 			t.Fatalf("Close: %v", err)
 		}
 
-		second, err := client.Workload.WatchEvents(ctx, &workspacev1.WatchEventsRequest{Cursor: start})
+		second, err := client.Workload().WatchEvents(ctx, &workspacev1.WatchEventsRequest{Cursor: start})
 		if err != nil {
 			t.Fatalf("WatchEvents from cursor: %v", err)
 		}
 		defer func() { _ = second.Close() }()
-		_, err = client.Workload.Jobs.Update(ctx, &workspacev1.UpdateJobRequest{
+		_, err = client.Workload().Jobs().Update(ctx, &workspacev1.UpdateJobRequest{
 			Id:         firstID,
 			Job:        &workspacev1.Job{Labels: map[string]string{"suite": "sdk-integration", "stage": "events"}},
 			UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"labels"}},
@@ -424,7 +424,7 @@ func TestIntegration(t *testing.T) {
 	})
 
 	t.Run("ListEvents", func(t *testing.T) {
-		page, err := client.Workload.ListEvents(ctx, &workspacev1.ListEventsRequest{
+		page, err := client.Workload().ListEvents(ctx, &workspacev1.ListEventsRequest{
 			WorkloadId: firstID,
 			PageSize:   100,
 		})
@@ -452,7 +452,7 @@ func TestIntegration(t *testing.T) {
 		waitCtx, waitCancel := context.WithTimeout(ctx, 4*time.Second)
 		defer waitCancel()
 		started := time.Now()
-		_, err := client.Workload.Jobs.Wait(waitCtx, &workspacev1.WaitJobRequest{
+		_, err := client.Workload().Jobs().Wait(waitCtx, &workspacev1.WaitJobRequest{
 			Id:      firstID,
 			States:  []workspacev1.JobState{workspacev1.JobState_JOB_STATE_ENDED},
 			Timeout: durationpb.New(time.Second),
@@ -467,7 +467,7 @@ func TestIntegration(t *testing.T) {
 	})
 
 	t.Run("Execute", func(t *testing.T) {
-		_, err := client.Workload.Sandboxes.Execute(ctx, &workspacev1.ExecuteStart{
+		_, err := client.Workload().Sandboxes().Execute(ctx, &workspacev1.ExecuteStart{
 			SandboxId: firstID,
 			Command:   &workspacev1.Command{Argv: []string{"true"}},
 		})
@@ -481,27 +481,27 @@ func TestIntegration(t *testing.T) {
 	})
 
 	t.Run("Secrets", func(t *testing.T) {
-		if _, err := client.Secret.CreateSecretSet(ctx, connect.NewRequest(&workspacev1.CreateSecretSetRequest{})); err != nil {
+		if _, err := client.Secret().CreateSecretSet(ctx, connect.NewRequest(&workspacev1.CreateSecretSetRequest{})); err != nil {
 			t.Fatalf("CreateSecretSet: %v", err)
 		}
-		if _, err := client.Secret.CreateSecretSet(ctx, connect.NewRequest(&workspacev1.CreateSecretSetRequest{Shared: true})); err != nil {
+		if _, err := client.Secret().CreateSecretSet(ctx, connect.NewRequest(&workspacev1.CreateSecretSetRequest{Shared: true})); err != nil {
 			t.Fatalf("CreateSecretSet shared: %v", err)
 		}
-		set, err := client.Secret.PutSecret(ctx, connect.NewRequest(&workspacev1.PutSecretRequest{Name: "sdk_key", Value: []byte("sdk-value")}))
+		set, err := client.Secret().PutSecret(ctx, connect.NewRequest(&workspacev1.PutSecretRequest{Name: "sdk_key", Value: []byte("sdk-value")}))
 		if err != nil {
 			t.Fatalf("PutSecret: %v", err)
 		}
 		if got := set.Msg.GetSecret().GetVersion(); got != 1 {
 			t.Fatalf("secret version %d, want 1 (PutSecret retried?)", got)
 		}
-		list, err := client.Secret.ListSecrets(ctx, connect.NewRequest(&workspacev1.ListSecretsRequest{}))
+		list, err := client.Secret().ListSecrets(ctx, connect.NewRequest(&workspacev1.ListSecretsRequest{}))
 		if err != nil {
 			t.Fatalf("ListSecrets: %v", err)
 		}
 		if names := secretNames(list.Msg.GetSecrets()); !names["sdk_key"] {
 			t.Fatalf("environment secrets %v, want sdk_key", names)
 		}
-		shared, err := client.Secret.ListSecrets(ctx, connect.NewRequest(&workspacev1.ListSecretsRequest{Shared: true}))
+		shared, err := client.Secret().ListSecrets(ctx, connect.NewRequest(&workspacev1.ListSecretsRequest{Shared: true}))
 		if err != nil {
 			t.Fatalf("ListSecrets shared: %v", err)
 		}
@@ -511,7 +511,7 @@ func TestIntegration(t *testing.T) {
 	})
 
 	t.Run("DeleteAndWaitOperation", func(t *testing.T) {
-		deleted, err := client.Workload.Jobs.Delete(ctx, &workspacev1.DeleteJobRequest{Id: secondID})
+		deleted, err := client.Workload().Jobs().Delete(ctx, &workspacev1.DeleteJobRequest{Id: secondID})
 		if err != nil {
 			t.Fatalf("DeleteJob: %v", err)
 		}
@@ -519,7 +519,7 @@ func TestIntegration(t *testing.T) {
 		if operation.GetId() == "" {
 			t.Fatal("DeleteJob returned no operation")
 		}
-		done, err := client.Workload.WaitOperation(ctx, &workspacev1.WaitOperationRequest{
+		done, err := client.Workload().WaitOperation(ctx, &workspacev1.WaitOperationRequest{
 			Id:      operation.GetId(),
 			Timeout: durationpb.New(5 * time.Second),
 		})
@@ -540,7 +540,7 @@ func TestIntegration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("New from environment: %v", err)
 		}
-		if _, err := envClient.Workload.Jobs.List(ctx, &workspacev1.ListJobsRequest{
+		if _, err := envClient.Workload().Jobs().List(ctx, &workspacev1.ListJobsRequest{
 			Project:     projectName,
 			Environment: environment,
 		}); err != nil {

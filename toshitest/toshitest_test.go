@@ -42,7 +42,7 @@ func TestRun(t *testing.T) {
 		t.Fatalf("Wait: %v", err)
 	}
 
-	jobs, err := client.Workload.Jobs.List(context.Background(), &workspacev1.ListJobsRequest{})
+	jobs, err := client.Workload().Jobs().List(context.Background(), &workspacev1.ListJobsRequest{})
 	if err != nil {
 		t.Fatalf("ListJobs: %v", err)
 	}
@@ -56,11 +56,11 @@ func TestRun(t *testing.T) {
 func TestCreateJobIsIdempotent(t *testing.T) {
 	tt := toshitest.New(t)
 	client := tt.Client()
-	first, err := client.Workload.Jobs.Create(context.Background(), &workspacev1.CreateJobRequest{RequestKey: "key-1"})
+	first, err := client.Workload().Jobs().Create(context.Background(), &workspacev1.CreateJobRequest{RequestKey: "key-1"})
 	if err != nil {
 		t.Fatalf("CreateJob: %v", err)
 	}
-	second, err := client.Workload.Jobs.Create(context.Background(), &workspacev1.CreateJobRequest{RequestKey: "key-1"})
+	second, err := client.Workload().Jobs().Create(context.Background(), &workspacev1.CreateJobRequest{RequestKey: "key-1"})
 	if err != nil {
 		t.Fatalf("second CreateJob: %v", err)
 	}
@@ -98,7 +98,7 @@ func TestExecute(t *testing.T) {
 	tt := toshitest.New(t)
 	tt.Execute("sb-1").Stdout("hello\n").Stderr("warn\n").ExitCode(0)
 
-	process, err := tt.Client().Workload.Sandboxes.Execute(context.Background(), &workspacev1.ExecuteStart{
+	process, err := tt.Client().Workload().Sandboxes().Execute(context.Background(), &workspacev1.ExecuteStart{
 		SandboxId: "sb-1",
 		Command:   &workspacev1.Command{Argv: []string{"echo", "hello"}},
 	})
@@ -146,7 +146,7 @@ func TestExecuteHooked(t *testing.T) {
 			})
 		})
 
-	process, err := tt.Client().Workload.Sandboxes.Execute(context.Background(), &workspacev1.ExecuteStart{SandboxId: "sb-1"})
+	process, err := tt.Client().Workload().Sandboxes().Execute(context.Background(), &workspacev1.ExecuteStart{SandboxId: "sb-1"})
 	if err != nil {
 		t.Fatalf("Execute: %v", err)
 	}
@@ -163,7 +163,7 @@ func TestWait(t *testing.T) {
 	tt := toshitest.New(t)
 	tt.Job("job-1").State(workspacev1.JobState_JOB_STATE_ENDED)
 
-	response, err := tt.Client().Workload.Jobs.Wait(context.Background(), &workspacev1.WaitJobRequest{
+	response, err := tt.Client().Workload().Jobs().Wait(context.Background(), &workspacev1.WaitJobRequest{
 		Id:     "job-1",
 		States: []workspacev1.JobState{workspacev1.JobState_JOB_STATE_ENDED},
 	})
@@ -181,11 +181,11 @@ func TestWatchJobs(t *testing.T) {
 	ctx := context.Background()
 	tt := toshitest.New(t)
 	client := tt.Client()
-	if _, err := client.Workload.Jobs.Create(ctx, &workspacev1.CreateJobRequest{}); err != nil {
+	if _, err := client.Workload().Jobs().Create(ctx, &workspacev1.CreateJobRequest{}); err != nil {
 		t.Fatalf("CreateJob: %v", err)
 	}
 
-	watch, err := client.Workload.Jobs.Watch(ctx, &workspacev1.WatchJobsRequest{})
+	watch, err := client.Workload().Jobs().Watch(ctx, &workspacev1.WatchJobsRequest{})
 	if err != nil {
 		t.Fatalf("Watch: %v", err)
 	}
@@ -210,7 +210,7 @@ func TestWatchOutput(t *testing.T) {
 	tt := toshitest.New(t)
 	tt.Job("job-1").Stdout("hello\n").ExitCode(0)
 
-	watch, err := tt.Client().Workload.Jobs.WatchOutput(context.Background(), &workspacev1.WatchOutputRequest{
+	watch, err := tt.Client().Workload().Jobs().WatchOutput(context.Background(), &workspacev1.WatchOutputRequest{
 		Id:           "job-1",
 		StdoutOffset: 2,
 	})
@@ -239,7 +239,7 @@ func TestOn(t *testing.T) {
 			return &workspacev1.CreateJobResponse{Job: &workspacev1.Job{Id: "hooked"}}, nil
 		})
 
-	response, err := tt.Client().Workload.Jobs.Create(context.Background(), &workspacev1.CreateJobRequest{})
+	response, err := tt.Client().Workload().Jobs().Create(context.Background(), &workspacev1.CreateJobRequest{})
 	if err != nil {
 		t.Fatalf("CreateJob: %v", err)
 	}
@@ -253,7 +253,7 @@ func TestOn(t *testing.T) {
 func TestCalls(t *testing.T) {
 	tt := toshitest.New(t)
 	client := tt.Client()
-	if _, err := client.Workload.Jobs.Create(context.Background(), &workspacev1.CreateJobRequest{}); err != nil {
+	if _, err := client.Workload().Jobs().Create(context.Background(), &workspacev1.CreateJobRequest{}); err != nil {
 		t.Fatalf("CreateJob: %v", err)
 	}
 
@@ -280,7 +280,7 @@ func TestCalls(t *testing.T) {
 // the procedure and the function that hooks it.
 func TestUnimplemented(t *testing.T) {
 	tt := toshitest.New(t)
-	_, err := tt.Client().Project.ListProjects(context.Background(), connect.NewRequest(&workspacev1.ListProjectsRequest{}))
+	_, err := tt.Client().Project().ListProjects(context.Background(), connect.NewRequest(&workspacev1.ListProjectsRequest{}))
 	if connect.CodeOf(err) != connect.CodeUnimplemented {
 		t.Fatalf("err %v, want UNIMPLEMENTED", err)
 	}

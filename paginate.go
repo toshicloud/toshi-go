@@ -22,7 +22,7 @@ type nextPageTokener interface {
 // response's items:
 //
 //	for project, err := range toshi.Paginate(ctx, &workspacev1.ListProjectsRequest{},
-//		client.Project.ListProjects,
+//		client.Project().ListProjects,
 //		func(resp *workspacev1.ListProjectsResponse) []*workspacev1.Project {
 //			return resp.Projects
 //		}) {

@@ -29,7 +29,7 @@ func ExampleNew() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	jobs, err := client.Workload.Jobs.List(ctx, &workspacev1.ListJobsRequest{})
+	jobs, err := client.Workload().Jobs().List(ctx, &workspacev1.ListJobsRequest{})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -44,7 +44,7 @@ func ExampleJobsClient_All() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	for job, err := range client.Workload.Jobs.All(ctx, &workspacev1.ListJobsRequest{}) {
+	for job, err := range client.Workload().Jobs().All(ctx, &workspacev1.ListJobsRequest{}) {
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -63,12 +63,12 @@ func ExampleWithScope() {
 		log.Fatal(err)
 	}
 	// The request names no scope: it lists the jobs of default/production.
-	production, err := client.Workload.Jobs.List(ctx, &workspacev1.ListJobsRequest{})
+	production, err := client.Workload().Jobs().List(ctx, &workspacev1.ListJobsRequest{})
 	if err != nil {
 		log.Fatal(err)
 	}
 	// A field the request sets is kept: this lists default/staging.
-	staging, err := client.Workload.Jobs.List(ctx, &workspacev1.ListJobsRequest{
+	staging, err := client.Workload().Jobs().List(ctx, &workspacev1.ListJobsRequest{
 		Environment: "staging",
 	})
 	if err != nil {
@@ -181,7 +181,7 @@ func ExampleJobsClient_Wait() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	resp, err := client.Workload.Jobs.Wait(ctx, &workspacev1.WaitJobRequest{
+	resp, err := client.Workload().Jobs().Wait(ctx, &workspacev1.WaitJobRequest{
 		Id:     "job-123",
 		States: []workspacev1.JobState{workspacev1.JobState_JOB_STATE_ENDED},
 	})
@@ -198,7 +198,7 @@ func ExampleJobsClient_Watch() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	watch, err := client.Workload.Jobs.Watch(ctx, &workspacev1.WatchJobsRequest{})
+	watch, err := client.Workload().Jobs().Watch(ctx, &workspacev1.WatchJobsRequest{})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -224,7 +224,7 @@ func ExampleSandboxesClient_Execute() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	proc, err := client.Workload.Sandboxes.Execute(ctx, &workspacev1.ExecuteStart{
+	proc, err := client.Workload().Sandboxes().Execute(ctx, &workspacev1.ExecuteStart{
 		SandboxId: "sbx-123",
 		Command:   &workspacev1.Command{Argv: []string{"tr", "a-z", "A-Z"}},
 	})

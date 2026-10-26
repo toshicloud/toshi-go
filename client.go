@@ -21,47 +21,85 @@ import (
 
 // Client holds a client for each service of the Workspace API, with this
 // package's authentication, scope and retry, and the interceptors and options
-// the caller adds.
+// the caller adds. Each service client is returned by a method; a Client built
+// by New is the only way to get one, so every call goes through the client's
+// authentication, scope and retry.
 type Client struct {
-	// Workload holds the calls of WorkloadService: a job's, a sandbox's and
-	// a service's, and the calls that span the three.
-	Workload WorkloadClient
-	// Project is the ProjectService client.
-	Project workspacev1connect.ProjectServiceClient
-	// Secret is the SecretService client.
-	Secret workspacev1connect.SecretServiceClient
-	// Webhook is the WebhookService client.
-	Webhook workspacev1connect.WebhookServiceClient
-	// Display is the DisplayService client.
-	Display workspacev1connect.DisplayServiceClient
-	// Channel is the ChannelService client, its server stream included.
-	Channel ChannelClient
-	// Recording is the RecordingService client.
-	Recording workspacev1connect.RecordingServiceClient
-	// Volume is the VolumeService client.
-	Volume workspacev1connect.VolumeServiceClient
-	// Artifact is the ArtifactService client.
-	Artifact workspacev1connect.ArtifactServiceClient
-	// ArtifactUpload is the ArtifactUploadService client.
-	ArtifactUpload workspacev1connect.ArtifactUploadServiceClient
-	// Workspace is the WorkspaceService client.
-	Workspace workspacev1connect.WorkspaceServiceClient
-	// HostJob is the HostJobService client.
-	HostJob workspacev1connect.HostJobServiceClient
-	// Host is the HostService client.
-	Host workspacev1connect.HostServiceClient
-	// Token is the TokenService client.
-	Token workspacev1connect.TokenServiceClient
-	// AuditEvent is the AuditEventService client.
-	AuditEvent workspacev1connect.AuditEventServiceClient
-	// Filler is the FillerService client.
-	Filler workspacev1connect.FillerServiceClient
-	// StorageProvider is the StorageProviderService client.
-	StorageProvider workspacev1connect.StorageProviderServiceClient
+	workload        *WorkloadClient
+	project         workspacev1connect.ProjectServiceClient
+	secret          workspacev1connect.SecretServiceClient
+	webhook         workspacev1connect.WebhookServiceClient
+	display         workspacev1connect.DisplayServiceClient
+	channel         ChannelClient
+	recording       workspacev1connect.RecordingServiceClient
+	volume          workspacev1connect.VolumeServiceClient
+	artifact        workspacev1connect.ArtifactServiceClient
+	artifactUpload  workspacev1connect.ArtifactUploadServiceClient
+	workspace       workspacev1connect.WorkspaceServiceClient
+	hostJob         workspacev1connect.HostJobServiceClient
+	host            workspacev1connect.HostServiceClient
+	token           workspacev1connect.TokenServiceClient
+	auditEvent      workspacev1connect.AuditEventServiceClient
+	filler          workspacev1connect.FillerServiceClient
+	storageProvider workspacev1connect.StorageProviderServiceClient
 
-	project     string
-	environment string
-	retry       RetryPolicy
+	retry RetryPolicy
+}
+
+// Workload holds the calls of WorkloadService: a job's, a sandbox's and
+// a service's, and the calls that span the three.
+func (c *Client) Workload() *WorkloadClient { return c.workload }
+
+// Project is the ProjectService client.
+func (c *Client) Project() workspacev1connect.ProjectServiceClient { return c.project }
+
+// Secret is the SecretService client.
+func (c *Client) Secret() workspacev1connect.SecretServiceClient { return c.secret }
+
+// Webhook is the WebhookService client.
+func (c *Client) Webhook() workspacev1connect.WebhookServiceClient { return c.webhook }
+
+// Display is the DisplayService client.
+func (c *Client) Display() workspacev1connect.DisplayServiceClient { return c.display }
+
+// Channel is the ChannelService client, its server stream included.
+func (c *Client) Channel() ChannelClient { return c.channel }
+
+// Recording is the RecordingService client.
+func (c *Client) Recording() workspacev1connect.RecordingServiceClient { return c.recording }
+
+// Volume is the VolumeService client.
+func (c *Client) Volume() workspacev1connect.VolumeServiceClient { return c.volume }
+
+// Artifact is the ArtifactService client.
+func (c *Client) Artifact() workspacev1connect.ArtifactServiceClient { return c.artifact }
+
+// ArtifactUpload is the ArtifactUploadService client.
+func (c *Client) ArtifactUpload() workspacev1connect.ArtifactUploadServiceClient {
+	return c.artifactUpload
+}
+
+// Workspace is the WorkspaceService client.
+func (c *Client) Workspace() workspacev1connect.WorkspaceServiceClient { return c.workspace }
+
+// HostJob is the HostJobService client.
+func (c *Client) HostJob() workspacev1connect.HostJobServiceClient { return c.hostJob }
+
+// Host is the HostService client.
+func (c *Client) Host() workspacev1connect.HostServiceClient { return c.host }
+
+// Token is the TokenService client.
+func (c *Client) Token() workspacev1connect.TokenServiceClient { return c.token }
+
+// AuditEvent is the AuditEventService client.
+func (c *Client) AuditEvent() workspacev1connect.AuditEventServiceClient { return c.auditEvent }
+
+// Filler is the FillerService client.
+func (c *Client) Filler() workspacev1connect.FillerServiceClient { return c.filler }
+
+// StorageProvider is the StorageProviderService client.
+func (c *Client) StorageProvider() workspacev1connect.StorageProviderServiceClient {
+	return c.storageProvider
 }
 
 // ChannelClient is the calls of ChannelService.
@@ -88,7 +126,7 @@ func New(opts ...Option) (*Client, error) {
 	cfg := &config{retry: DefaultRetryPolicy()}
 	for _, opt := range opts {
 		if opt != nil {
-			opt(cfg)
+			opt.apply(cfg)
 		}
 	}
 	policy := normalizeRetry(cfg.retry)
@@ -129,27 +167,26 @@ func New(opts ...Option) (*Client, error) {
 	options := append([]connect.ClientOption{connect.WithInterceptors(interceptors...)}, cfg.connectOptions...)
 
 	client := &Client{
-		Project:         workspacev1connect.NewProjectServiceClient(api, server, options...),
-		Secret:          workspacev1connect.NewSecretServiceClient(api, server, options...),
-		Webhook:         workspacev1connect.NewWebhookServiceClient(api, server, options...),
-		Display:         workspacev1connect.NewDisplayServiceClient(api, server, options...),
-		Channel:         workspacev1connect.NewChannelServiceClient(api, server, options...),
-		Recording:       workspacev1connect.NewRecordingServiceClient(api, server, options...),
-		Volume:          workspacev1connect.NewVolumeServiceClient(api, server, options...),
-		Artifact:        workspacev1connect.NewArtifactServiceClient(api, server, options...),
-		ArtifactUpload:  workspacev1connect.NewArtifactUploadServiceClient(api, server, options...),
-		Workspace:       workspacev1connect.NewWorkspaceServiceClient(api, server, options...),
-		HostJob:         workspacev1connect.NewHostJobServiceClient(api, server, options...),
-		Host:            workspacev1connect.NewHostServiceClient(api, server, options...),
-		Token:           workspacev1connect.NewTokenServiceClient(api, server, options...),
-		AuditEvent:      workspacev1connect.NewAuditEventServiceClient(api, server, options...),
-		Filler:          workspacev1connect.NewFillerServiceClient(api, server, options...),
-		StorageProvider: workspacev1connect.NewStorageProviderServiceClient(api, server, options...),
-		project:         cfg.project,
-		environment:     cfg.environment,
+		project:         workspacev1connect.NewProjectServiceClient(api, server, options...),
+		secret:          workspacev1connect.NewSecretServiceClient(api, server, options...),
+		webhook:         workspacev1connect.NewWebhookServiceClient(api, server, options...),
+		display:         workspacev1connect.NewDisplayServiceClient(api, server, options...),
+		channel:         workspacev1connect.NewChannelServiceClient(api, server, options...),
+		recording:       workspacev1connect.NewRecordingServiceClient(api, server, options...),
+		volume:          workspacev1connect.NewVolumeServiceClient(api, server, options...),
+		artifact:        workspacev1connect.NewArtifactServiceClient(api, server, options...),
+		artifactUpload:  workspacev1connect.NewArtifactUploadServiceClient(api, server, options...),
+		workspace:       workspacev1connect.NewWorkspaceServiceClient(api, server, options...),
+		hostJob:         workspacev1connect.NewHostJobServiceClient(api, server, options...),
+		host:            workspacev1connect.NewHostServiceClient(api, server, options...),
+		token:           workspacev1connect.NewTokenServiceClient(api, server, options...),
+		auditEvent:      workspacev1connect.NewAuditEventServiceClient(api, server, options...),
+		filler:          workspacev1connect.NewFillerServiceClient(api, server, options...),
+		storageProvider: workspacev1connect.NewStorageProviderServiceClient(api, server, options...),
 		retry:           policy,
 	}
-	client.Workload = newWorkloadClient(client, workspacev1connect.NewWorkloadServiceClient(api, server, options...))
+	workload := newWorkloadClient(client, workspacev1connect.NewWorkloadServiceClient(api, server, options...))
+	client.workload = workload
 	return client, nil
 }
 

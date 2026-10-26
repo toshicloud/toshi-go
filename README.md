@@ -27,7 +27,7 @@ client, err := toshi.New(toshi.WithScope("default", "production"))
 if err != nil {
 	log.Fatal(err)
 }
-jobs, err := client.Workload.Jobs.List(ctx, &workspacev1.ListJobsRequest{})
+jobs, err := client.Workload().Jobs().List(ctx, &workspacev1.ListJobsRequest{})
 if err != nil {
 	log.Fatal(err)
 }
@@ -36,16 +36,17 @@ for _, job := range jobs.GetJobs() {
 }
 ```
 
-`Client` has one field per service. `Workload` is written by this module: a
-job's calls under `Workload.Jobs`, a sandbox's under `Workload.Sandboxes`, a
-service's under `Workload.Services`, and the calls that span the three on
-`Workload` itself (`WatchEvents`, `ListEvents`, `GetOperation`,
+`Client` has one method per service. `Workload()` returns a
+`*WorkloadClient`, written by this module: a job's calls under
+`Workload().Jobs()`, a sandbox's under `Workload().Sandboxes()`, a service's
+under `Workload().Services()`, and the calls that span the three on
+`Workload()` itself (`WatchEvents`, `ListEvents`, `GetOperation`,
 `WaitOperation`).
-`Project`, `Secret`, `Webhook`, `Display`, `Channel`, `Recording`, `Volume`,
-`Artifact`, `ArtifactUpload`, `Workspace`, `HostJob`, `Host`, `Token`,
-`AuditEvent`, `Filler` and `StorageProvider` are the generated Connect clients
-of their service; `Channel` is `ChannelClient`, which spells out the service's
-calls.
+`Project()`, `Secret()`, `Webhook()`, `Display()`, `Channel()`, `Recording()`,
+`Volume()`, `Artifact()`, `ArtifactUpload()`, `Workspace()`, `HostJob()`,
+`Host()`, `Token()`, `AuditEvent()`, `Filler()` and `StorageProvider()` return
+the generated Connect clients of their service; `Channel()` is
+`ChannelClient`, which spells out the service's calls.
 
 `New` reads the server and token from `TOSHI_SERVER` and `TOSHI_TOKEN`
 (or the file `TOSHI_TOKEN_FILE` names), and an extra CA bundle from
@@ -64,15 +65,16 @@ token. There is no default project or environment: set them with
 - `Run` creates a job and follows it: write nothing, read `Stdout` and
   `Stderr` at the same time, and `Wait` returns nil for exit 0 or a
   `*JobExitError` for any other end.
-- `Workload.Jobs.Wait`, `Workload.Sandboxes.Wait`, `Workload.Services.Wait`
-  and `Workload.WaitOperation` ask again until the resource reaches the
-  state or the operation is done, or the context ends.
-- The watches, `Workload.Jobs.Watch`, `Workload.Sandboxes.Watch`,
-  `Workload.Services.Watch`, `Workload.WatchEvents` and
-  `Workload.Jobs.WatchOutput`, resume after a dropped connection from the
+- `Workload().Jobs().Wait`, `Workload().Sandboxes().Wait`,
+  `Workload().Services().Wait` and `Workload().WaitOperation` ask again until
+  the resource reaches the state or the operation is done, or the context
+  ends.
+- The watches, `Workload().Jobs().Watch`, `Workload().Sandboxes().Watch`,
+  `Workload().Services().Watch`, `Workload().WatchEvents` and
+  `Workload().Jobs().WatchOutput`, resume after a dropped connection from the
   last cursor or byte offset received. A cursor the server no longer keeps
   ends the watch with `OUT_OF_RANGE`.
-- `Workload.Sandboxes.Execute` starts a command and returns a `Process`:
+- `Workload().Sandboxes().Execute` starts a command and returns a `Process`:
   write its standard input to `Stdin`, read `Stdout` and `Stderr` at the
   same time, and `Wait` returns an `*ExitError` for a non-zero exit or a
   cancelled command, or a `*StreamLostError` with the request key when the
@@ -119,12 +121,12 @@ picked up without a new client.
 
 `List` returns one page, and passing its `next_page_token` back asks for the
 next. The `All` calls yield every item across the pages:
-`Workload.Jobs.All`, `Workload.Sandboxes.All`, `Workload.Services.All`,
-`Workload.Sandboxes.AllPreviewShareLinks`, `Workload.Services.AllRuns` and
-`Workload.AllEvents`. A loop that breaks stops the pages, and an error ends
-the sequence. For a generated client's `List` call, `toshi.Paginate` follows
-the pages the same way, given the request, the method and a function that
-picks the items from a response.
+`Workload().Jobs().All`, `Workload().Sandboxes().All`,
+`Workload().Services().All`, `Workload().Sandboxes().AllPreviewShareLinks`,
+`Workload().Services().AllRuns` and `Workload().AllEvents`. A loop that breaks
+stops the pages, and an error ends the sequence. For a generated client's
+`List` call, `toshi.Paginate` follows the pages the same way, given the
+request, the method and a function that picks the items from a response.
 
 <!-- ExampleJobsClient_All -->
 ```go
@@ -142,7 +144,7 @@ client, err := toshi.New(toshi.WithScope("default", "production"))
 if err != nil {
 	log.Fatal(err)
 }
-for job, err := range client.Workload.Jobs.All(ctx, &workspacev1.ListJobsRequest{}) {
+for job, err := range client.Workload().Jobs().All(ctx, &workspacev1.ListJobsRequest{}) {
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -276,6 +278,16 @@ at the new path. Change the import prefix in your code with:
 git grep -lz 'github\.com/toshicloud/toshi-api' -- '*.go' \
   | xargs -0 -r sed -i 's#github\.com/toshicloud/toshi-api#go.toshicloud.io/api#'
 ```
+
+Every service field of `Client` is a method of the same name now, and so are
+`Workload`'s fields. An exported field could be replaced, and a replaced
+service client silently loses the client's authentication, scope and retry;
+the methods hand out the client `New` built, so that cannot happen. One call
+becomes `client.Workload().Jobs().Create(ctx, req)` where it was
+`client.Workload.Jobs.Create(ctx, req)`.
+
+`Option` is a sealed interface now, so it can grow without another break;
+code that passes options compiles unchanged.
 
 ## Versions
 
