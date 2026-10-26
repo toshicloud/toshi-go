@@ -255,6 +255,89 @@ func TestIntegration(t *testing.T) {
 		}
 	})
 
+	t.Run("MemberServiceClients", func(t *testing.T) {
+		t.Run("Workspace", func(t *testing.T) {
+			resp, err := wide.Workspace.GetWorkspace(ctx, connect.NewRequest(&workspacev1.GetWorkspaceRequest{}))
+			if err != nil {
+				t.Fatalf("GetWorkspace: %v", err)
+			}
+			if resp.Msg.GetWorkspace().GetId() == "" {
+				t.Fatal("GetWorkspace returned no workspace")
+			}
+		})
+
+		t.Run("HostJob", func(t *testing.T) {
+			resp, err := wide.HostJob.ListHostJobs(ctx, connect.NewRequest(&workspacev1.ListHostJobsRequest{}))
+			if err != nil {
+				t.Fatalf("ListHostJobs: %v", err)
+			}
+			for _, hostJob := range resp.Msg.GetHostJobs() {
+				if hostJob.GetId() == "" {
+					t.Fatal("a host job has no id")
+				}
+			}
+		})
+
+		t.Run("Host", func(t *testing.T) {
+			resp, err := wide.Host.ListHosts(ctx, connect.NewRequest(&workspacev1.ListHostsRequest{}))
+			if err != nil {
+				t.Fatalf("ListHosts: %v", err)
+			}
+			for _, host := range resp.Msg.GetHosts() {
+				if host.GetId() == "" {
+					t.Fatal("a host has no id")
+				}
+			}
+		})
+
+		t.Run("Token", func(t *testing.T) {
+			resp, err := wide.Token.ListTokens(ctx, connect.NewRequest(&workspacev1.ListTokensRequest{}))
+			if err != nil {
+				t.Fatalf("ListTokens: %v", err)
+			}
+			found := false
+			for _, token := range resp.Msg.GetTokens() {
+				if token.GetName() == "sdk-integration" {
+					found = true
+				}
+			}
+			if !found {
+				t.Fatal("the suite's token is not listed")
+			}
+		})
+
+		t.Run("AuditEvent", func(t *testing.T) {
+			resp, err := wide.AuditEvent.ListAuditEvents(ctx, connect.NewRequest(&workspacev1.ListAuditEventsRequest{}))
+			if err != nil {
+				t.Fatalf("ListAuditEvents: %v", err)
+			}
+			if len(resp.Msg.GetEvents()) == 0 {
+				t.Fatal("no audit events after the suite's changes")
+			}
+		})
+
+		t.Run("Filler", func(t *testing.T) {
+			resp, err := wide.Filler.ListFillers(ctx, connect.NewRequest(&workspacev1.ListFillersRequest{}))
+			if err != nil {
+				t.Fatalf("ListFillers: %v", err)
+			}
+			for _, filler := range resp.Msg.GetFillers() {
+				if filler.GetName() == "" {
+					t.Fatal("a filler has no name")
+				}
+			}
+		})
+
+		t.Run("StorageProvider", func(t *testing.T) {
+			// StorageProviderService is closed to tenant tokens: the call
+			// reaching it and being refused proves the field's service.
+			_, err := wide.StorageProvider.ListStorageProviders(ctx, connect.NewRequest(&workspacev1.ListStorageProvidersRequest{}))
+			if connect.CodeOf(err) != connect.CodePermissionDenied {
+				t.Fatalf("ListStorageProviders: %v, want PERMISSION_DENIED", err)
+			}
+		})
+	})
+
 	t.Run("WatchJobs", func(t *testing.T) {
 		watchCtx, watchCancel := context.WithTimeout(ctx, 20*time.Second)
 		defer watchCancel()

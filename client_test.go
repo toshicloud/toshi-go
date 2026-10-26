@@ -34,6 +34,13 @@ type backend struct {
 	workspacev1connect.UnimplementedVolumeServiceHandler
 	workspacev1connect.UnimplementedArtifactServiceHandler
 	workspacev1connect.UnimplementedArtifactUploadServiceHandler
+	workspacev1connect.UnimplementedWorkspaceServiceHandler
+	workspacev1connect.UnimplementedHostJobServiceHandler
+	workspacev1connect.UnimplementedHostServiceHandler
+	workspacev1connect.UnimplementedTokenServiceHandler
+	workspacev1connect.UnimplementedAuditEventServiceHandler
+	workspacev1connect.UnimplementedFillerServiceHandler
+	workspacev1connect.UnimplementedStorageProviderServiceHandler
 
 	createJob            func(context.Context, *connect.Request[workspacev1.CreateJobRequest]) (*connect.Response[workspacev1.CreateJobResponse], error)
 	getJob               func(context.Context, *connect.Request[workspacev1.GetJobRequest]) (*connect.Response[workspacev1.GetJobResponse], error)
@@ -51,6 +58,13 @@ type backend struct {
 	listVolumes          func(context.Context, *connect.Request[workspacev1.ListVolumesRequest]) (*connect.Response[workspacev1.ListVolumesResponse], error)
 	listArtifacts        func(context.Context, *connect.Request[workspacev1.ListArtifactsRequest]) (*connect.Response[workspacev1.ListArtifactsResponse], error)
 	reserveUpload        func(context.Context, *connect.Request[workspacev1.ReserveUploadRequest]) (*connect.Response[workspacev1.ReserveUploadResponse], error)
+	listWorkspaces       func(context.Context, *connect.Request[workspacev1.ListWorkspacesRequest]) (*connect.Response[workspacev1.ListWorkspacesResponse], error)
+	listHostJobs         func(context.Context, *connect.Request[workspacev1.ListHostJobsRequest]) (*connect.Response[workspacev1.ListHostJobsResponse], error)
+	listHosts            func(context.Context, *connect.Request[workspacev1.ListHostsRequest]) (*connect.Response[workspacev1.ListHostsResponse], error)
+	listTokens           func(context.Context, *connect.Request[workspacev1.ListTokensRequest]) (*connect.Response[workspacev1.ListTokensResponse], error)
+	listAuditEvents      func(context.Context, *connect.Request[workspacev1.ListAuditEventsRequest]) (*connect.Response[workspacev1.ListAuditEventsResponse], error)
+	listFillers          func(context.Context, *connect.Request[workspacev1.ListFillersRequest]) (*connect.Response[workspacev1.ListFillersResponse], error)
+	listStorageProviders func(context.Context, *connect.Request[workspacev1.ListStorageProvidersRequest]) (*connect.Response[workspacev1.ListStorageProvidersResponse], error)
 	watchJobs            func(context.Context, *connect.Request[workspacev1.WatchJobsRequest], *connect.ServerStream[workspacev1.WatchJobsResponse]) error
 	watchEvents          func(context.Context, *connect.Request[workspacev1.WatchEventsRequest], *connect.ServerStream[workspacev1.WatchEventsResponse]) error
 	watchOutput          func(context.Context, *connect.Request[workspacev1.WatchOutputRequest], *connect.ServerStream[workspacev1.WatchOutputResponse]) error
@@ -170,6 +184,55 @@ func (b *backend) ReserveUpload(ctx context.Context, req *connect.Request[worksp
 	return nil, unimplemented()
 }
 
+func (b *backend) ListWorkspaces(ctx context.Context, req *connect.Request[workspacev1.ListWorkspacesRequest]) (*connect.Response[workspacev1.ListWorkspacesResponse], error) {
+	if b.listWorkspaces != nil {
+		return b.listWorkspaces(ctx, req)
+	}
+	return nil, unimplemented()
+}
+
+func (b *backend) ListHostJobs(ctx context.Context, req *connect.Request[workspacev1.ListHostJobsRequest]) (*connect.Response[workspacev1.ListHostJobsResponse], error) {
+	if b.listHostJobs != nil {
+		return b.listHostJobs(ctx, req)
+	}
+	return nil, unimplemented()
+}
+
+func (b *backend) ListHosts(ctx context.Context, req *connect.Request[workspacev1.ListHostsRequest]) (*connect.Response[workspacev1.ListHostsResponse], error) {
+	if b.listHosts != nil {
+		return b.listHosts(ctx, req)
+	}
+	return nil, unimplemented()
+}
+
+func (b *backend) ListTokens(ctx context.Context, req *connect.Request[workspacev1.ListTokensRequest]) (*connect.Response[workspacev1.ListTokensResponse], error) {
+	if b.listTokens != nil {
+		return b.listTokens(ctx, req)
+	}
+	return nil, unimplemented()
+}
+
+func (b *backend) ListAuditEvents(ctx context.Context, req *connect.Request[workspacev1.ListAuditEventsRequest]) (*connect.Response[workspacev1.ListAuditEventsResponse], error) {
+	if b.listAuditEvents != nil {
+		return b.listAuditEvents(ctx, req)
+	}
+	return nil, unimplemented()
+}
+
+func (b *backend) ListFillers(ctx context.Context, req *connect.Request[workspacev1.ListFillersRequest]) (*connect.Response[workspacev1.ListFillersResponse], error) {
+	if b.listFillers != nil {
+		return b.listFillers(ctx, req)
+	}
+	return nil, unimplemented()
+}
+
+func (b *backend) ListStorageProviders(ctx context.Context, req *connect.Request[workspacev1.ListStorageProvidersRequest]) (*connect.Response[workspacev1.ListStorageProvidersResponse], error) {
+	if b.listStorageProviders != nil {
+		return b.listStorageProviders(ctx, req)
+	}
+	return nil, unimplemented()
+}
+
 func (b *backend) WatchJobs(ctx context.Context, req *connect.Request[workspacev1.WatchJobsRequest], stream *connect.ServerStream[workspacev1.WatchJobsResponse]) error {
 	if b.watchJobs != nil {
 		return b.watchJobs(ctx, req, stream)
@@ -229,6 +292,13 @@ func newTestServer(t *testing.T, b *backend) *testServer {
 		func() (string, http.Handler) { return workspacev1connect.NewVolumeServiceHandler(b) },
 		func() (string, http.Handler) { return workspacev1connect.NewArtifactServiceHandler(b) },
 		func() (string, http.Handler) { return workspacev1connect.NewArtifactUploadServiceHandler(b) },
+		func() (string, http.Handler) { return workspacev1connect.NewWorkspaceServiceHandler(b) },
+		func() (string, http.Handler) { return workspacev1connect.NewHostJobServiceHandler(b) },
+		func() (string, http.Handler) { return workspacev1connect.NewHostServiceHandler(b) },
+		func() (string, http.Handler) { return workspacev1connect.NewTokenServiceHandler(b) },
+		func() (string, http.Handler) { return workspacev1connect.NewAuditEventServiceHandler(b) },
+		func() (string, http.Handler) { return workspacev1connect.NewFillerServiceHandler(b) },
+		func() (string, http.Handler) { return workspacev1connect.NewStorageProviderServiceHandler(b) },
 	} {
 		path, handler := mount()
 		mux.Handle(path, handler)
@@ -499,6 +569,34 @@ func TestClientFieldsCallTheirServices(t *testing.T) {
 			count()
 			return connect.NewResponse(&workspacev1.ReserveUploadResponse{}), nil
 		},
+		listWorkspaces: func(context.Context, *connect.Request[workspacev1.ListWorkspacesRequest]) (*connect.Response[workspacev1.ListWorkspacesResponse], error) {
+			count()
+			return connect.NewResponse(&workspacev1.ListWorkspacesResponse{}), nil
+		},
+		listHostJobs: func(context.Context, *connect.Request[workspacev1.ListHostJobsRequest]) (*connect.Response[workspacev1.ListHostJobsResponse], error) {
+			count()
+			return connect.NewResponse(&workspacev1.ListHostJobsResponse{}), nil
+		},
+		listHosts: func(context.Context, *connect.Request[workspacev1.ListHostsRequest]) (*connect.Response[workspacev1.ListHostsResponse], error) {
+			count()
+			return connect.NewResponse(&workspacev1.ListHostsResponse{}), nil
+		},
+		listTokens: func(context.Context, *connect.Request[workspacev1.ListTokensRequest]) (*connect.Response[workspacev1.ListTokensResponse], error) {
+			count()
+			return connect.NewResponse(&workspacev1.ListTokensResponse{}), nil
+		},
+		listAuditEvents: func(context.Context, *connect.Request[workspacev1.ListAuditEventsRequest]) (*connect.Response[workspacev1.ListAuditEventsResponse], error) {
+			count()
+			return connect.NewResponse(&workspacev1.ListAuditEventsResponse{}), nil
+		},
+		listFillers: func(context.Context, *connect.Request[workspacev1.ListFillersRequest]) (*connect.Response[workspacev1.ListFillersResponse], error) {
+			count()
+			return connect.NewResponse(&workspacev1.ListFillersResponse{}), nil
+		},
+		listStorageProviders: func(context.Context, *connect.Request[workspacev1.ListStorageProvidersRequest]) (*connect.Response[workspacev1.ListStorageProvidersResponse], error) {
+			count()
+			return connect.NewResponse(&workspacev1.ListStorageProvidersResponse{}), nil
+		},
 	})
 	client := newTestClient(t, server)
 	ctx := context.Background()
@@ -529,8 +627,22 @@ func TestClientFieldsCallTheirServices(t *testing.T) {
 	check("Artifact", err)
 	_, err = client.ArtifactUpload.ReserveUpload(ctx, connect.NewRequest(&workspacev1.ReserveUploadRequest{}))
 	check("ArtifactUpload", err)
-	if seen.Load() != 10 {
-		t.Fatalf("%d services answered, want 10", seen.Load())
+	_, err = client.Workspace.ListWorkspaces(ctx, connect.NewRequest(&workspacev1.ListWorkspacesRequest{}))
+	check("Workspace", err)
+	_, err = client.HostJob.ListHostJobs(ctx, connect.NewRequest(&workspacev1.ListHostJobsRequest{}))
+	check("HostJob", err)
+	_, err = client.Host.ListHosts(ctx, connect.NewRequest(&workspacev1.ListHostsRequest{}))
+	check("Host", err)
+	_, err = client.Token.ListTokens(ctx, connect.NewRequest(&workspacev1.ListTokensRequest{}))
+	check("Token", err)
+	_, err = client.AuditEvent.ListAuditEvents(ctx, connect.NewRequest(&workspacev1.ListAuditEventsRequest{}))
+	check("AuditEvent", err)
+	_, err = client.Filler.ListFillers(ctx, connect.NewRequest(&workspacev1.ListFillersRequest{}))
+	check("Filler", err)
+	_, err = client.StorageProvider.ListStorageProviders(ctx, connect.NewRequest(&workspacev1.ListStorageProvidersRequest{}))
+	check("StorageProvider", err)
+	if seen.Load() != 17 {
+		t.Fatalf("%d services answered, want 17", seen.Load())
 	}
 }
 
@@ -622,6 +734,13 @@ func TestRetryMapCoversEveryProcedure(t *testing.T) {
 		workspacev1.File_toshi_workspace_v1_recordings_proto,
 		workspacev1.File_toshi_workspace_v1_volumes_proto,
 		workspacev1.File_toshi_workspace_v1_artifacts_proto,
+		workspacev1.File_toshi_workspace_v1_audit_events_proto,
+		workspacev1.File_toshi_workspace_v1_fillers_proto,
+		workspacev1.File_toshi_workspace_v1_hostjobs_proto,
+		workspacev1.File_toshi_workspace_v1_hosts_proto,
+		workspacev1.File_toshi_workspace_v1_storage_providers_proto,
+		workspacev1.File_toshi_workspace_v1_tokens_proto,
+		workspacev1.File_toshi_workspace_v1_workspace_service_proto,
 	}
 	seen := 0
 	for _, file := range files {
@@ -638,8 +757,8 @@ func TestRetryMapCoversEveryProcedure(t *testing.T) {
 			}
 		}
 	}
-	if seen != 105 {
-		t.Errorf("checked %d procedures, want 105", seen)
+	if seen != 150 {
+		t.Errorf("checked %d procedures, want 150", seen)
 	}
 }
 
