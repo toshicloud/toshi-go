@@ -30,8 +30,10 @@ service's under `Workload.Services`, and the calls that span the three on
 `Workload` itself (`WatchEvents`, `ListEvents`, `GetOperation`,
 `WaitOperation`).
 `Project`, `Secret`, `Webhook`, `Display`, `Channel`, `Recording`, `Volume`,
-`Artifact` and `ArtifactUpload` are the generated Connect clients of their
-service; `Channel` is `ChannelClient`, which spells out the service's calls.
+`Artifact`, `ArtifactUpload`, `Workspace`, `HostJob`, `Host`, `Token`,
+`AuditEvent`, `Filler` and `StorageProvider` are the generated Connect clients
+of their service; `Channel` is `ChannelClient`, which spells out the service's
+calls.
 
 `New` reads the server and token from `TOSHI_SERVER` and `TOSHI_TOKEN`
 (or the file `TOSHI_TOKEN_FILE` names), and an extra CA bundle from

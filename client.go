@@ -41,6 +41,20 @@ type Client struct {
 	Artifact workspacev1connect.ArtifactServiceClient
 	// ArtifactUpload is the ArtifactUploadService client.
 	ArtifactUpload workspacev1connect.ArtifactUploadServiceClient
+	// Workspace is the WorkspaceService client.
+	Workspace workspacev1connect.WorkspaceServiceClient
+	// HostJob is the HostJobService client.
+	HostJob workspacev1connect.HostJobServiceClient
+	// Host is the HostService client.
+	Host workspacev1connect.HostServiceClient
+	// Token is the TokenService client.
+	Token workspacev1connect.TokenServiceClient
+	// AuditEvent is the AuditEventService client.
+	AuditEvent workspacev1connect.AuditEventServiceClient
+	// Filler is the FillerService client.
+	Filler workspacev1connect.FillerServiceClient
+	// StorageProvider is the StorageProviderService client.
+	StorageProvider workspacev1connect.StorageProviderServiceClient
 
 	project     string
 	environment string
@@ -111,18 +125,25 @@ func New(opts ...Option) (*Client, error) {
 	interceptors := connect.WithInterceptors(auth, scope, retry)
 
 	client := &Client{
-		Project:        workspacev1connect.NewProjectServiceClient(httpClient, server, interceptors),
-		Secret:         workspacev1connect.NewSecretServiceClient(httpClient, server, interceptors),
-		Webhook:        workspacev1connect.NewWebhookServiceClient(httpClient, server, interceptors),
-		Display:        workspacev1connect.NewDisplayServiceClient(httpClient, server, interceptors),
-		Channel:        workspacev1connect.NewChannelServiceClient(httpClient, server, interceptors),
-		Recording:      workspacev1connect.NewRecordingServiceClient(httpClient, server, interceptors),
-		Volume:         workspacev1connect.NewVolumeServiceClient(httpClient, server, interceptors),
-		Artifact:       workspacev1connect.NewArtifactServiceClient(httpClient, server, interceptors),
-		ArtifactUpload: workspacev1connect.NewArtifactUploadServiceClient(httpClient, server, interceptors),
-		project:        cfg.project,
-		environment:    cfg.environment,
-		retry:          policy,
+		Project:         workspacev1connect.NewProjectServiceClient(httpClient, server, interceptors),
+		Secret:          workspacev1connect.NewSecretServiceClient(httpClient, server, interceptors),
+		Webhook:         workspacev1connect.NewWebhookServiceClient(httpClient, server, interceptors),
+		Display:         workspacev1connect.NewDisplayServiceClient(httpClient, server, interceptors),
+		Channel:         workspacev1connect.NewChannelServiceClient(httpClient, server, interceptors),
+		Recording:       workspacev1connect.NewRecordingServiceClient(httpClient, server, interceptors),
+		Volume:          workspacev1connect.NewVolumeServiceClient(httpClient, server, interceptors),
+		Artifact:        workspacev1connect.NewArtifactServiceClient(httpClient, server, interceptors),
+		ArtifactUpload:  workspacev1connect.NewArtifactUploadServiceClient(httpClient, server, interceptors),
+		Workspace:       workspacev1connect.NewWorkspaceServiceClient(httpClient, server, interceptors),
+		HostJob:         workspacev1connect.NewHostJobServiceClient(httpClient, server, interceptors),
+		Host:            workspacev1connect.NewHostServiceClient(httpClient, server, interceptors),
+		Token:           workspacev1connect.NewTokenServiceClient(httpClient, server, interceptors),
+		AuditEvent:      workspacev1connect.NewAuditEventServiceClient(httpClient, server, interceptors),
+		Filler:          workspacev1connect.NewFillerServiceClient(httpClient, server, interceptors),
+		StorageProvider: workspacev1connect.NewStorageProviderServiceClient(httpClient, server, interceptors),
+		project:         cfg.project,
+		environment:     cfg.environment,
+		retry:           policy,
 	}
 	client.Workload = newWorkloadClient(client, workspacev1connect.NewWorkloadServiceClient(httpClient, server, interceptors))
 	return client, nil
