@@ -1,7 +1,7 @@
 package toshitest
 
 import (
-	workspacev1connect "github.com/toshicloud/toshi-api/workspacev1/workspacev1connect"
+	workspacev1connect "go.toshicloud.io/api/workspacev1/workspacev1connect"
 )
 
 // hookOnly lists the procedures the fake has no built-in answer for: a test

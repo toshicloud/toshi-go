@@ -10,7 +10,7 @@ import (
 	"connectrpc.com/connect"
 	"google.golang.org/protobuf/proto"
 
-	workspacev1connect "github.com/toshicloud/toshi-api/workspacev1/workspacev1connect"
+	workspacev1connect "go.toshicloud.io/api/workspacev1/workspacev1connect"
 )
 
 // services serves the Workspace API from the generated Unimplemented

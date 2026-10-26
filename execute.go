@@ -8,7 +8,7 @@ import (
 
 	"connectrpc.com/connect"
 
-	workspacev1 "github.com/toshicloud/toshi-api/workspacev1"
+	workspacev1 "go.toshicloud.io/api/workspacev1"
 )
 
 // stdinChunk is the largest standard-input message Execute sends, well under

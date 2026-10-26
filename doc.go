@@ -5,7 +5,7 @@
 // under Workload.Sandboxes, a service's under Workload.Services, and the
 // calls that span the three on Workload itself. The other fields are the
 // generated Connect clients of their service, from the module
-// github.com/toshicloud/toshi-api. The client sends its token as a bearer
+// go.toshicloud.io/api. The client sends its token as a bearer
 // token and fills an empty project and environment from WithScope. It
 // retries reads, and the writes that take a request_key, when the server is
 // unavailable or the connection drops; every other error,

@@ -6,7 +6,7 @@ import (
 	"io"
 	"sync"
 
-	workspacev1 "github.com/toshicloud/toshi-api/workspacev1"
+	workspacev1 "go.toshicloud.io/api/workspacev1"
 )
 
 // Run creates a job and follows its output, as `toshi run` does. It returns
