@@ -29,7 +29,7 @@ import (
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
 	workspacev1 "github.com/toshicloud/toshi-api/workspacev1"
-	toshi "github.com/toshicloud/toshi-go"
+	"go.toshicloud.io/toshi"
 )
 
 const (
