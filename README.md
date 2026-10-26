@@ -3,12 +3,21 @@
 A Go client for the Toshi Workspace API, `toshi.workspace.v1`.
 
 ```sh
-go get github.com/toshicloud/toshi-go
+go get go.toshicloud.io/toshi
 ```
+
+v0.1.0 is under github.com/toshicloud/toshi-go and later versions use
+go.toshicloud.io/toshi.
 
 ## Using the client
 
 ```go
+import (
+	"connectrpc.com/connect"
+	"github.com/toshicloud/toshi-api/workspacev1"
+	"go.toshicloud.io/toshi"
+)
+
 client, err := toshi.New(toshi.WithScope("default", "production"))
 if err != nil {
 	return err
