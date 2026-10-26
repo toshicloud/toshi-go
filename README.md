@@ -80,6 +80,61 @@ token. There is no default project or environment: set them with
 
 Execute needs HTTP/2, which the server offers over https.
 
+## Interceptors and the User-Agent
+
+`WithInterceptors` adds Connect interceptors to every service client, for
+logging, metrics or tracing;
+[otelconnect](https://github.com/connectrpc/otelconnect-go) is one that fits.
+They wrap the client's own scope and retry: an interceptor sees one call for
+each unary method call, with the retries inside it, and one for each stream
+the client opens (a watch that resumes opens a new one). It
+runs before the scope is filled in and never sees the token, which the client
+sets on each HTTP request below every interceptor.
+
+<!-- ExampleWithInterceptors -->
+```go
+import (
+	"context"
+	"log"
+	"log/slog"
+	"time"
+
+	"connectrpc.com/connect"
+	"go.toshicloud.io/toshi"
+)
+
+logCalls := connect.UnaryInterceptorFunc(func(next connect.UnaryFunc) connect.UnaryFunc {
+	return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+		start := time.Now()
+		resp, err := next(ctx, req)
+		slog.InfoContext(ctx, "toshi call",
+			"procedure", req.Spec().Procedure,
+			"duration", time.Since(start),
+			"err", err)
+		return resp, err
+	}
+})
+client, err := toshi.New(
+	toshi.WithScope("default", "production"),
+	toshi.WithInterceptors(logCalls),
+	toshi.WithUserAgent("myapp/1.2"),
+)
+if err != nil {
+	log.Fatal(err)
+}
+_ = client // Use the client as in the other examples.
+```
+
+`WithConnectOptions` passes other Connect client options, such as
+`connect.WithSendMaxBytes`, to every service client after the client's own.
+An interceptor passed that way runs inside the retry, once for each try.
+
+Every request carries the User-Agent
+`toshi-go/<version> connect-go/<version> (<Go version>)`, for example
+`toshi-go/0.2.1 connect-go/1.21.1 (go1.26.0)`. `WithUserAgent("myapp/1.2")`
+puts your product in front: `myapp/1.2 toshi-go/0.2.1 ...`. `toshi.Version`
+is this module's version.
+
 ## Testing with toshitest
 
 `toshitest` starts a fake Toshi inside a test: a TLS server speaking HTTP/2

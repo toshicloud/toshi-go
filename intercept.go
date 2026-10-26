@@ -2,6 +2,8 @@ package toshi
 
 import (
 	"context"
+	"net/http"
+	"runtime"
 
 	"connectrpc.com/connect"
 	"google.golang.org/protobuf/proto"
@@ -10,29 +12,32 @@ import (
 	workspacev1 "github.com/toshicloud/toshi-api/workspacev1"
 )
 
-// authInterceptor sends the token as a bearer token on every call and
-// stream. It never sets Toshi-Tenant.
-type authInterceptor struct {
-	token string
+// headerClient sets the headers the client owns on every HTTP request: the
+// token as a bearer token and the User-Agent. It sets them on a copy below
+// every interceptor, so no interceptor sees the token. It never sets
+// Toshi-Tenant.
+type headerClient struct {
+	next      connect.HTTPClient
+	token     string
+	userAgent string
 }
 
-func (a authInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
-	return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
-		req.Header().Set("Authorization", "Bearer "+a.token)
-		return next(ctx, req)
+func (h headerClient) Do(req *http.Request) (*http.Response, error) {
+	out := *req
+	out.Header = req.Header.Clone()
+	out.Header.Set("Authorization", "Bearer "+h.token)
+	out.Header.Set("User-Agent", h.userAgent)
+	return h.next.Do(&out)
+}
+
+// userAgent returns the User-Agent the client sends, with product in front
+// when it is set.
+func userAgent(product string) string {
+	ua := "toshi-go/" + Version + " connect-go/" + connect.Version + " (" + runtime.Version() + ")"
+	if product == "" {
+		return ua
 	}
-}
-
-func (a authInterceptor) WrapStreamingClient(next connect.StreamingClientFunc) connect.StreamingClientFunc {
-	return func(ctx context.Context, spec connect.Spec) connect.StreamingClientConn {
-		conn := next(ctx, spec)
-		conn.RequestHeader().Set("Authorization", "Bearer "+a.token)
-		return conn
-	}
-}
-
-func (a authInterceptor) WrapStreamingHandler(next connect.StreamingHandlerFunc) connect.StreamingHandlerFunc {
-	return next
+	return product + " " + ua
 }
 
 // scopeInterceptor fills an empty project and environment on unary requests

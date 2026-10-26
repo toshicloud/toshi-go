@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"os"
 	"strings"
 	"sync"
@@ -80,6 +81,29 @@ func ExampleWithRetryPolicy() {
 	_ = client // Use the client as in the other examples.
 	// Output:
 	// 5 attempts, backoff from 200ms up to 10s
+}
+
+func ExampleWithInterceptors() {
+	logCalls := connect.UnaryInterceptorFunc(func(next connect.UnaryFunc) connect.UnaryFunc {
+		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+			start := time.Now()
+			resp, err := next(ctx, req)
+			slog.InfoContext(ctx, "toshi call",
+				"procedure", req.Spec().Procedure,
+				"duration", time.Since(start),
+				"err", err)
+			return resp, err
+		}
+	})
+	client, err := toshi.New(
+		toshi.WithScope("default", "production"),
+		toshi.WithInterceptors(logCalls),
+		toshi.WithUserAgent("myapp/1.2"),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	_ = client // Use the client as in the other examples.
 }
 
 func ExampleClient_Run() {
