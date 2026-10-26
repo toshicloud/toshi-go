@@ -115,6 +115,41 @@ before a request when its modification time or size has changed, so a
 rotated token, such as a Kubernetes projected service account token, is
 picked up without a new client.
 
+## Lists
+
+`List` returns one page, and passing its `next_page_token` back asks for the
+next. The `All` calls yield every item across the pages:
+`Workload.Jobs.All`, `Workload.Sandboxes.All`, `Workload.Services.All`,
+`Workload.Sandboxes.AllPreviewShareLinks`, `Workload.Services.AllRuns` and
+`Workload.AllEvents`. A loop that breaks stops the pages, and an error ends
+the sequence. For a generated client's `List` call, `toshi.Paginate` follows
+the pages the same way, given the request, the method and a function that
+picks the items from a response.
+
+<!-- ExampleJobsClient_All -->
+```go
+import (
+	"context"
+	"fmt"
+	"log"
+
+	"github.com/toshicloud/toshi-api/workspacev1"
+	"go.toshicloud.io/toshi"
+)
+
+ctx := context.Background()
+client, err := toshi.New(toshi.WithScope("default", "production"))
+if err != nil {
+	log.Fatal(err)
+}
+for job, err := range client.Workload.Jobs.All(ctx, &workspacev1.ListJobsRequest{}) {
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(job.GetId(), job.GetStatus().GetState())
+}
+```
+
 ## Interceptors and the User-Agent
 
 `WithInterceptors` adds Connect interceptors to every service client, for
@@ -169,7 +204,6 @@ Every request carries the User-Agent
 `toshi-go/0.2.1 connect-go/1.21.1 (go1.26.0)`. `WithUserAgent("myapp/1.2")`
 puts your product in front: `myapp/1.2 toshi-go/0.2.1 ...`. `toshi.Version`
 is this module's version.
-
 ## Testing with toshitest
 
 `toshitest` starts a fake Toshi inside a test: a TLS server speaking HTTP/2

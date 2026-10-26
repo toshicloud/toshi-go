@@ -2,6 +2,7 @@ package toshi
 
 import (
 	"context"
+	"iter"
 
 	"connectrpc.com/connect"
 
@@ -63,6 +64,14 @@ func (w WorkloadClient) ListEvents(ctx context.Context, req *workspacev1.ListEve
 	return resp.Msg, nil
 }
 
+// AllEvents yields every event ListEvents lists, following the page token
+// from one page to the next.
+func (w WorkloadClient) AllEvents(ctx context.Context, req *workspacev1.ListEventsRequest) iter.Seq2[*workspacev1.Event, error] {
+	return Paginate(ctx, req, w.call.svc.ListEvents, func(resp *workspacev1.ListEventsResponse) []*workspacev1.Event {
+		return resp.Events
+	})
+}
+
 // WatchEvents starts an event watch. With an empty cursor it pages
 // ListEvents, reports each listed event, and then watches from the last
 // page's cursor.
@@ -105,6 +114,14 @@ func (j JobsClient) List(ctx context.Context, req *workspacev1.ListJobsRequest) 
 		return nil, err
 	}
 	return resp.Msg, nil
+}
+
+// All yields every job that matches every filter that is set, following the
+// page token from one page to the next.
+func (j JobsClient) All(ctx context.Context, req *workspacev1.ListJobsRequest) iter.Seq2[*workspacev1.Job, error] {
+	return Paginate(ctx, req, j.call.svc.ListJobs, func(resp *workspacev1.ListJobsResponse) []*workspacev1.Job {
+		return resp.Jobs
+	})
 }
 
 // Update changes the fields the mask names and returns the job.
@@ -160,6 +177,14 @@ func (s SandboxesClient) List(ctx context.Context, req *workspacev1.ListSandboxe
 		return nil, err
 	}
 	return resp.Msg, nil
+}
+
+// All yields every sandbox that matches every filter that is set, following
+// the page token from one page to the next.
+func (s SandboxesClient) All(ctx context.Context, req *workspacev1.ListSandboxesRequest) iter.Seq2[*workspacev1.Sandbox, error] {
+	return Paginate(ctx, req, s.call.svc.ListSandboxes, func(resp *workspacev1.ListSandboxesResponse) []*workspacev1.Sandbox {
+		return resp.Sandboxes
+	})
 }
 
 // Update changes the fields the mask names and returns the sandbox.
@@ -221,6 +246,15 @@ func (s SandboxesClient) ListPreviewShareLinks(ctx context.Context, req *workspa
 	return resp.Msg, nil
 }
 
+// AllPreviewShareLinks yields every share link ListPreviewShareLinks
+// returns, oldest first and never with the link itself, following the page
+// token from one page to the next.
+func (s SandboxesClient) AllPreviewShareLinks(ctx context.Context, req *workspacev1.ListPreviewShareLinksRequest) iter.Seq2[*workspacev1.PreviewShareLink, error] {
+	return Paginate(ctx, req, s.call.svc.ListPreviewShareLinks, func(resp *workspacev1.ListPreviewShareLinksResponse) []*workspacev1.PreviewShareLink {
+		return resp.ShareLinks
+	})
+}
+
 // RevokePreviewShareLink revokes a share link.
 func (s SandboxesClient) RevokePreviewShareLink(ctx context.Context, req *workspacev1.RevokePreviewShareLinkRequest) (*workspacev1.RevokePreviewShareLinkResponse, error) {
 	resp, err := s.call.svc.RevokePreviewShareLink(ctx, connect.NewRequest(req))
@@ -257,6 +291,14 @@ func (s ServicesClient) List(ctx context.Context, req *workspacev1.ListServicesR
 		return nil, err
 	}
 	return resp.Msg, nil
+}
+
+// All yields every service that matches every filter that is set, following
+// the page token from one page to the next.
+func (s ServicesClient) All(ctx context.Context, req *workspacev1.ListServicesRequest) iter.Seq2[*workspacev1.Service, error] {
+	return Paginate(ctx, req, s.call.svc.ListServices, func(resp *workspacev1.ListServicesResponse) []*workspacev1.Service {
+		return resp.Services
+	})
 }
 
 // Update changes the fields the mask names and returns the service.
@@ -339,4 +381,12 @@ func (s ServicesClient) ListRuns(ctx context.Context, req *workspacev1.ListServi
 		return nil, err
 	}
 	return resp.Msg, nil
+}
+
+// AllRuns yields every run ListRuns returns, the newest first, following the
+// page token from one page to the next.
+func (s ServicesClient) AllRuns(ctx context.Context, req *workspacev1.ListServiceRunsRequest) iter.Seq2[*workspacev1.ServiceRun, error] {
+	return Paginate(ctx, req, s.call.svc.ListServiceRuns, func(resp *workspacev1.ListServiceRunsResponse) []*workspacev1.ServiceRun {
+		return resp.Runs
+	})
 }

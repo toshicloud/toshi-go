@@ -38,6 +38,20 @@ func ExampleNew() {
 	}
 }
 
+func ExampleJobsClient_All() {
+	ctx := context.Background()
+	client, err := toshi.New(toshi.WithScope("default", "production"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	for job, err := range client.Workload.Jobs.All(ctx, &workspacev1.ListJobsRequest{}) {
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println(job.GetId(), job.GetStatus().GetState())
+	}
+}
+
 func ExampleWithScope() {
 	ctx := context.Background()
 	client, err := toshi.New(
