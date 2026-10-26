@@ -6,30 +6,35 @@ import (
 	"go/parser"
 	"go/token"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
 )
 
 // readmeMarker names the Example whose body the next Go block of README.md
-// copies.
-var readmeMarker = regexp.MustCompile(`^<!-- (Example\w*) -->$`)
+// copies: a bare ExampleName is in the module's example_test.go, and a
+// <dir>.ExampleName is in <dir>/example_test.go.
+var readmeMarker = regexp.MustCompile(`^<!-- (?:(\w+)\.)?(Example\w*) -->$`)
 
 // TestReadmeMatchesExamples proves each Go block of README.md is the body of
 // the Example its marker names, ignoring indentation and the block's imports,
 // so the README shows code that compiles.
 func TestReadmeMatchesExamples(t *testing.T) {
-	bodies := exampleBodies(t, "example_test.go")
 	blocks := readmeBlocks(t, "README.md")
 	if len(blocks) == 0 {
 		t.Fatal("README.md has no Go block")
 	}
+	bodies := map[string]map[string][]string{}
 	for _, b := range blocks {
 		if b.example == "" {
 			t.Errorf("README.md:%d: Go block without a <!-- ExampleName --> marker on the line before it", b.line)
 			continue
 		}
-		body, ok := bodies[b.example]
+		if _, ok := bodies[b.dir]; !ok {
+			bodies[b.dir] = exampleBodies(t, b.dir)
+		}
+		body, ok := bodies[b.dir][b.example]
 		if !ok {
 			t.Errorf("README.md:%d: the marker names %s, which example_test.go does not define", b.line, b.example)
 			continue
@@ -41,9 +46,10 @@ func TestReadmeMatchesExamples(t *testing.T) {
 }
 
 // readmeBlock is one Go block of README.md: the line of its opening fence,
-// the Example its marker names and its lines.
+// the directory of the Example its marker names, that Example, and its lines.
 type readmeBlock struct {
 	line    int
+	dir     string
 	example string
 	code    []string
 }
@@ -68,7 +74,8 @@ func readmeBlocks(t *testing.T, path string) []readmeBlock {
 		case trimmed == "```go":
 			current = &readmeBlock{line: i + 1}
 			if m := readmeMarker.FindStringSubmatch(previous); m != nil {
-				current.example = m[1]
+				current.dir = m[1]
+				current.example = m[2]
 			}
 		}
 		if trimmed != "" {
@@ -81,9 +88,11 @@ func readmeBlocks(t *testing.T, path string) []readmeBlock {
 	return blocks
 }
 
-// exampleBodies returns the lines of each Example function's body in path.
-func exampleBodies(t *testing.T, path string) map[string][]string {
+// exampleBodies returns the lines of each Example function's body in
+// <dir>/example_test.go.
+func exampleBodies(t *testing.T, dir string) map[string][]string {
 	t.Helper()
+	path := filepath.Join(dir, "example_test.go")
 	src, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
