@@ -112,7 +112,7 @@ func TestIntegration(t *testing.T) {
 		"--ca-file", caPath,
 		"--secret-file", webhookPath,
 		"--installation", installationID,
-		"--repo", account+"/app",
+		"--repository", account+"/app",
 		"--event", "installation",
 		"--action", "created",
 	)
@@ -121,8 +121,8 @@ func TestIntegration(t *testing.T) {
 
 	// A project-wide token, so the shared secret set is reachable too. An
 	// environment-limited token is refused the shared set by the API.
-	token := strings.TrimSpace(run(t, operatorEnv, bin, "tokens", "create",
-		"--tenant", installationID,
+	token := strings.TrimSpace(run(t, operatorEnv, bin, "token", "create",
+		"--workspace", installationID,
 		"--name", "sdk-integration",
 		"--project", projectName,
 	))
@@ -143,13 +143,30 @@ func TestIntegration(t *testing.T) {
 		t.Fatalf("New: %v", err)
 	}
 
+	// A workspace-wide token: the services whose calls name no project
+	// (channels, recordings, volumes, artifacts) refuse a project-limited
+	// one.
+	workspaceWide := strings.TrimSpace(run(t, operatorEnv, bin, "token", "create",
+		"--workspace", installationID,
+		"--name", "sdk-integration-workspace",
+	))
+	wide, err := toshi.New(
+		toshi.WithServer(baseURL),
+		toshi.WithToken(workspaceWide),
+		toshi.WithCAFile(caPath),
+		toshi.WithScope(projectName, environment),
+	)
+	if err != nil {
+		t.Fatalf("New with a workspace-wide token: %v", err)
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
 
 	var firstID, secondID string
 
 	t.Run("ListProjects", func(t *testing.T) {
-		resp, err := client.Projects.ListProjects(ctx, connect.NewRequest(&workspacev1.ListProjectsRequest{}))
+		resp, err := client.Project.ListProjects(ctx, connect.NewRequest(&workspacev1.ListProjectsRequest{}))
 		if err != nil {
 			t.Fatalf("ListProjects: %v", err)
 		}
@@ -169,22 +186,22 @@ func TestIntegration(t *testing.T) {
 		}
 	})
 
-	t.Run("CreateWorkload", func(t *testing.T) {
-		create := func(key string) (*workspacev1.CreateWorkloadRequest, *workspacev1.Workload) {
+	t.Run("CreateJob", func(t *testing.T) {
+		create := func(key string) (*workspacev1.CreateJobRequest, *workspacev1.Job) {
 			t.Helper()
-			req := &workspacev1.CreateWorkloadRequest{
+			req := &workspacev1.CreateJobRequest{
 				Labels:     map[string]string{"suite": "sdk-integration"},
-				Spec:       &workspacev1.CreateWorkloadRequest_Job{Job: &workspacev1.JobSpec{Command: &workspacev1.Command{Argv: []string{"true"}}}},
+				Spec:       &workspacev1.JobSpec{Command: &workspacev1.Command{Argv: []string{"true"}}},
 				RequestKey: key,
 			}
-			resp, err := client.Workspace.CreateWorkload(ctx, connect.NewRequest(req))
+			resp, err := client.Workload.Jobs.Create(ctx, req)
 			if err != nil {
-				t.Fatalf("CreateWorkload: %v", err)
+				t.Fatalf("CreateJob: %v", err)
 			}
-			if resp.Msg.GetWorkload().GetId() == "" {
-				t.Fatal("CreateWorkload returned no workload")
+			if resp.GetJob().GetId() == "" {
+				t.Fatal("CreateJob returned no job")
 			}
-			return req, resp.Msg.GetWorkload()
+			return req, resp.GetJob()
 		}
 		_, first := create("sdk-fixed-key")
 		_, again := create("sdk-fixed-key")
@@ -199,53 +216,70 @@ func TestIntegration(t *testing.T) {
 	})
 
 	t.Run("GetAndList", func(t *testing.T) {
-		got, err := client.Workspace.GetWorkload(ctx, connect.NewRequest(&workspacev1.GetWorkloadRequest{Id: firstID}))
+		got, err := client.Workload.Jobs.Get(ctx, &workspacev1.GetJobRequest{Id: firstID})
 		if err != nil {
-			t.Fatalf("GetWorkload: %v", err)
+			t.Fatalf("GetJob: %v", err)
 		}
-		if got.Msg.GetWorkload().GetLabels()["suite"] != "sdk-integration" {
-			t.Fatalf("labels %v", got.Msg.GetWorkload().GetLabels())
+		if got.GetJob().GetLabels()["suite"] != "sdk-integration" {
+			t.Fatalf("labels %v", got.GetJob().GetLabels())
 		}
-		list, err := client.Workspace.ListWorkloads(ctx, connect.NewRequest(&workspacev1.ListWorkloadsRequest{
+		list, err := client.Workload.Jobs.List(ctx, &workspacev1.ListJobsRequest{
 			Labels: map[string]string{"suite": "sdk-integration"},
-		}))
+		})
 		if err != nil {
-			t.Fatalf("ListWorkloads: %v", err)
+			t.Fatalf("ListJobs: %v", err)
 		}
 		ids := map[string]bool{}
-		for _, workload := range list.Msg.GetWorkloads() {
-			ids[workload.GetId()] = true
+		for _, job := range list.GetJobs() {
+			ids[job.GetId()] = true
 		}
 		if len(ids) != 2 || !ids[firstID] || !ids[secondID] {
-			t.Fatalf("workloads %v, want %q and %q", ids, firstID, secondID)
+			t.Fatalf("jobs %v, want %q and %q", ids, firstID, secondID)
 		}
 	})
 
-	t.Run("WatchWorkloads", func(t *testing.T) {
+	t.Run("OtherServiceClients", func(t *testing.T) {
+		channels, err := wide.Channel.ListChannels(ctx, connect.NewRequest(&workspacev1.ListChannelsRequest{}))
+		if err != nil {
+			t.Fatalf("ListChannels: %v", err)
+		}
+		if len(channels.Msg.GetChannels()) != 0 {
+			t.Fatalf("a workspace without a channel has %d", len(channels.Msg.GetChannels()))
+		}
+		volumes, err := wide.Volume.ListVolumes(ctx, connect.NewRequest(&workspacev1.ListVolumesRequest{}))
+		if err != nil {
+			t.Fatalf("ListVolumes: %v", err)
+		}
+		if len(volumes.Msg.GetVolumes()) != 0 {
+			t.Fatalf("a project without a volume has %d", len(volumes.Msg.GetVolumes()))
+		}
+	})
+
+	t.Run("WatchJobs", func(t *testing.T) {
 		watchCtx, watchCancel := context.WithTimeout(ctx, 20*time.Second)
 		defer watchCancel()
-		watch, err := client.WatchWorkloads(watchCtx, &workspacev1.WatchWorkloadsRequest{})
+		watch, err := client.Workload.Jobs.Watch(watchCtx, &workspacev1.WatchJobsRequest{})
 		if err != nil {
-			t.Fatalf("WatchWorkloads: %v", err)
+			t.Fatalf("WatchJobs: %v", err)
 		}
 		defer func() { _ = watch.Close() }()
 		if len(watch.Snapshot()) < 2 {
-			t.Fatalf("snapshot %v, want the created workloads", watch.Snapshot())
+			t.Fatalf("snapshot %v, want the created jobs", watch.Snapshot())
 		}
-		_, err = client.Workspace.PatchWorkload(ctx, connect.NewRequest(&workspacev1.PatchWorkloadRequest{
+		_, err = client.Workload.Jobs.Update(ctx, &workspacev1.UpdateJobRequest{
 			Id:         secondID,
-			Workload:   &workspacev1.Workload{Labels: map[string]string{"suite": "sdk-integration", "stage": "watch"}},
+			Job:        &workspacev1.Job{Labels: map[string]string{"suite": "sdk-integration", "stage": "watch"}},
 			UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"labels"}},
-		}))
+		})
 		if err != nil {
-			t.Fatalf("PatchWorkload: %v", err)
+			t.Fatalf("UpdateJob: %v", err)
 		}
 		for {
 			if !watch.Receive() {
 				t.Fatalf("watch ended: %v", watch.Err())
 			}
 			msg := watch.Msg()
-			if msg.GetWorkload().GetId() == secondID && msg.GetWorkload().GetLabels()["stage"] == "watch" {
+			if msg.GetJob().GetId() == secondID && msg.GetJob().GetLabels()["stage"] == "watch" {
 				if watch.Cursor() == "" {
 					t.Fatal("cursor is empty after a change")
 				}
@@ -257,7 +291,7 @@ func TestIntegration(t *testing.T) {
 	t.Run("Events", func(t *testing.T) {
 		watchCtx, watchCancel := context.WithTimeout(ctx, 20*time.Second)
 		defer watchCancel()
-		first, err := client.WatchEvents(watchCtx, &workspacev1.WatchEventsRequest{})
+		first, err := client.Workload.WatchEvents(watchCtx, &workspacev1.WatchEventsRequest{})
 		if err != nil {
 			t.Fatalf("WatchEvents: %v", err)
 		}
@@ -266,7 +300,7 @@ func TestIntegration(t *testing.T) {
 			if !first.Receive() {
 				t.Fatalf("event watch ended: %v", first.Err())
 			}
-			event := first.Event()
+			event := first.Msg().Event
 			if event.GetType() == workspacev1.EventType_EVENT_TYPE_WORKLOAD_CREATED && event.GetWorkloadId() == firstID {
 				created = true
 			}
@@ -279,24 +313,24 @@ func TestIntegration(t *testing.T) {
 			t.Fatalf("Close: %v", err)
 		}
 
-		second, err := client.WatchEvents(ctx, &workspacev1.WatchEventsRequest{Cursor: start})
+		second, err := client.Workload.WatchEvents(ctx, &workspacev1.WatchEventsRequest{Cursor: start})
 		if err != nil {
 			t.Fatalf("WatchEvents from cursor: %v", err)
 		}
 		defer func() { _ = second.Close() }()
-		_, err = client.Workspace.PatchWorkload(ctx, connect.NewRequest(&workspacev1.PatchWorkloadRequest{
+		_, err = client.Workload.Jobs.Update(ctx, &workspacev1.UpdateJobRequest{
 			Id:         firstID,
-			Workload:   &workspacev1.Workload{Labels: map[string]string{"suite": "sdk-integration", "stage": "events"}},
+			Job:        &workspacev1.Job{Labels: map[string]string{"suite": "sdk-integration", "stage": "events"}},
 			UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"labels"}},
-		}))
+		})
 		if err != nil {
-			t.Fatalf("PatchWorkload: %v", err)
+			t.Fatalf("UpdateJob: %v", err)
 		}
 		for {
 			if !second.Receive() {
 				t.Fatalf("event watch from cursor ended: %v", second.Err())
 			}
-			event := second.Event()
+			event := second.Msg().Event
 			if event.GetType() == workspacev1.EventType_EVENT_TYPE_WORKLOAD_CREATED && event.GetWorkloadId() == firstID {
 				t.Fatal("the watch started again from the oldest event")
 			}
@@ -306,28 +340,28 @@ func TestIntegration(t *testing.T) {
 		}
 	})
 
-	t.Run("WaitWorkload", func(t *testing.T) {
+	t.Run("WaitJob", func(t *testing.T) {
 		waitCtx, waitCancel := context.WithTimeout(ctx, 4*time.Second)
 		defer waitCancel()
 		started := time.Now()
-		_, err := client.WaitWorkload(waitCtx, &workspacev1.WaitWorkloadRequest{
+		_, err := client.Workload.Jobs.Wait(waitCtx, &workspacev1.WaitJobRequest{
 			Id:      firstID,
-			States:  []workspacev1.WorkloadState{workspacev1.WorkloadState_WORKLOAD_STATE_ENDED},
+			States:  []workspacev1.JobState{workspacev1.JobState_JOB_STATE_ENDED},
 			Timeout: durationpb.New(time.Second),
 		})
 		elapsed := time.Since(started)
 		if connect.CodeOf(err) != connect.CodeDeadlineExceeded {
-			t.Fatalf("WaitWorkload: %v, want DEADLINE_EXCEEDED", err)
+			t.Fatalf("WaitJob: %v, want DEADLINE_EXCEEDED", err)
 		}
 		if elapsed < 3*time.Second {
-			t.Fatalf("WaitWorkload returned after %v, want at least 3s", elapsed)
+			t.Fatalf("WaitJob returned after %v, want at least 3s", elapsed)
 		}
 	})
 
 	t.Run("Execute", func(t *testing.T) {
-		_, err := client.Execute(ctx, &workspacev1.ExecuteStart{
-			WorkloadId: firstID,
-			Command:    &workspacev1.Command{Argv: []string{"true"}},
+		_, err := client.Workload.Sandboxes.Execute(ctx, &workspacev1.ExecuteStart{
+			SandboxId: firstID,
+			Command:   &workspacev1.Command{Argv: []string{"true"}},
 		})
 		if connect.CodeOf(err) != connect.CodeFailedPrecondition {
 			t.Fatalf("Execute: %v, want FAILED_PRECONDITION", err)
@@ -339,27 +373,27 @@ func TestIntegration(t *testing.T) {
 	})
 
 	t.Run("Secrets", func(t *testing.T) {
-		if _, err := client.Secrets.CreateSecretSet(ctx, connect.NewRequest(&workspacev1.CreateSecretSetRequest{})); err != nil {
+		if _, err := client.Secret.CreateSecretSet(ctx, connect.NewRequest(&workspacev1.CreateSecretSetRequest{})); err != nil {
 			t.Fatalf("CreateSecretSet: %v", err)
 		}
-		if _, err := client.Secrets.CreateSecretSet(ctx, connect.NewRequest(&workspacev1.CreateSecretSetRequest{Shared: true})); err != nil {
+		if _, err := client.Secret.CreateSecretSet(ctx, connect.NewRequest(&workspacev1.CreateSecretSetRequest{Shared: true})); err != nil {
 			t.Fatalf("CreateSecretSet shared: %v", err)
 		}
-		set, err := client.Secrets.SetSecret(ctx, connect.NewRequest(&workspacev1.SetSecretRequest{Name: "sdk_key", Value: []byte("sdk-value")}))
+		set, err := client.Secret.PutSecret(ctx, connect.NewRequest(&workspacev1.PutSecretRequest{Name: "sdk_key", Value: []byte("sdk-value")}))
 		if err != nil {
-			t.Fatalf("SetSecret: %v", err)
+			t.Fatalf("PutSecret: %v", err)
 		}
 		if got := set.Msg.GetSecret().GetVersion(); got != 1 {
-			t.Fatalf("secret version %d, want 1 (SetSecret retried?)", got)
+			t.Fatalf("secret version %d, want 1 (PutSecret retried?)", got)
 		}
-		list, err := client.Secrets.ListSecrets(ctx, connect.NewRequest(&workspacev1.ListSecretsRequest{}))
+		list, err := client.Secret.ListSecrets(ctx, connect.NewRequest(&workspacev1.ListSecretsRequest{}))
 		if err != nil {
 			t.Fatalf("ListSecrets: %v", err)
 		}
 		if names := secretNames(list.Msg.GetSecrets()); !names["sdk_key"] {
 			t.Fatalf("environment secrets %v, want sdk_key", names)
 		}
-		shared, err := client.Secrets.ListSecrets(ctx, connect.NewRequest(&workspacev1.ListSecretsRequest{Shared: true}))
+		shared, err := client.Secret.ListSecrets(ctx, connect.NewRequest(&workspacev1.ListSecretsRequest{Shared: true}))
 		if err != nil {
 			t.Fatalf("ListSecrets shared: %v", err)
 		}
@@ -369,15 +403,15 @@ func TestIntegration(t *testing.T) {
 	})
 
 	t.Run("DeleteAndWaitOperation", func(t *testing.T) {
-		deleted, err := client.Workspace.DeleteWorkload(ctx, connect.NewRequest(&workspacev1.DeleteWorkloadRequest{Id: secondID}))
+		deleted, err := client.Workload.Jobs.Delete(ctx, &workspacev1.DeleteJobRequest{Id: secondID})
 		if err != nil {
-			t.Fatalf("DeleteWorkload: %v", err)
+			t.Fatalf("DeleteJob: %v", err)
 		}
-		operation := deleted.Msg.GetOperation()
+		operation := deleted.GetOperation()
 		if operation.GetId() == "" {
-			t.Fatal("DeleteWorkload returned no operation")
+			t.Fatal("DeleteJob returned no operation")
 		}
-		done, err := client.WaitOperation(ctx, &workspacev1.WaitOperationRequest{
+		done, err := client.Workload.WaitOperation(ctx, &workspacev1.WaitOperationRequest{
 			Id:      operation.GetId(),
 			Timeout: durationpb.New(5 * time.Second),
 		})
@@ -398,11 +432,11 @@ func TestIntegration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("New from environment: %v", err)
 		}
-		if _, err := envClient.Workspace.ListWorkloads(ctx, connect.NewRequest(&workspacev1.ListWorkloadsRequest{
+		if _, err := envClient.Workload.Jobs.List(ctx, &workspacev1.ListJobsRequest{
 			Project:     projectName,
 			Environment: environment,
-		})); err != nil {
-			t.Fatalf("ListWorkloads from the environment client: %v", err)
+		}); err != nil {
+			t.Fatalf("ListJobs from the environment client: %v", err)
 		}
 	})
 }
@@ -594,7 +628,7 @@ func waitTenant(t *testing.T, bin string, env map[string]string, tenant string, 
 	deadline := time.Now().Add(timeout)
 	var last string
 	for time.Now().Before(deadline) {
-		out := runNoFail(bin, env, "tenants", "list", "--json")
+		out := runNoFail(bin, env, "workspace", "list", "--json")
 		last = out
 		var payload struct {
 			Tenants []struct {

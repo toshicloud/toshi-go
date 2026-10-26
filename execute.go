@@ -15,10 +15,10 @@ import (
 // the API's 1 MiB request limit.
 const stdinChunk = 64 << 10
 
-// Execute starts a command in a running workload and returns a Process. It
+// Execute starts a command in a running sandbox and returns a Process. It
 // fills the start's scope and an empty request key, sends the start once, and
 // never retries: a lost stream comes back as a StreamLostError with the key.
-func (c *Client) Execute(ctx context.Context, start *workspacev1.ExecuteStart) (*Process, error) {
+func (s SandboxesClient) Execute(ctx context.Context, start *workspacev1.ExecuteStart) (*Process, error) {
 	if start == nil {
 		return nil, errors.New("toshi: Execute needs a start message")
 	}
@@ -26,7 +26,7 @@ func (c *Client) Execute(ctx context.Context, start *workspacev1.ExecuteStart) (
 	key := start.GetRequestKey()
 
 	procCtx, cancel := context.WithCancel(ctx)
-	stream := c.Workspace.Execute(procCtx)
+	stream := s.call.svc.Execute(procCtx)
 	// Send reports a server that refused the stream as an error wrapping
 	// io.EOF; the server's own error is on Receive.
 	msg, err := func() (*workspacev1.ExecuteResponse, error) {

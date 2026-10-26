@@ -1,6 +1,7 @@
 package toshi
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
@@ -12,26 +13,55 @@ import (
 
 	"connectrpc.com/connect"
 
+	workspacev1 "github.com/toshicloud/toshi-api/workspacev1"
 	workspacev1connect "github.com/toshicloud/toshi-api/workspacev1/workspacev1connect"
 )
 
-// Client holds the generated clients of the Workspace API's five services,
-// with this package's authentication, scope and retry interceptors.
+// Client holds a client for each service of the Workspace API, with this
+// package's authentication, scope and retry interceptors.
 type Client struct {
-	// Workspace is the WorkspaceService client.
-	Workspace workspacev1connect.WorkspaceServiceClient
-	// Projects is the ProjectService client.
-	Projects workspacev1connect.ProjectServiceClient
-	// Secrets is the SecretService client.
-	Secrets workspacev1connect.SecretServiceClient
-	// Webhooks is the WebhookService client.
-	Webhooks workspacev1connect.WebhookServiceClient
-	// Displays is the DisplayService client.
-	Displays workspacev1connect.DisplayServiceClient
+	// Workload holds the calls of WorkloadService: a job's, a sandbox's and
+	// a service's, and the calls that span the three.
+	Workload WorkloadClient
+	// Project is the ProjectService client.
+	Project workspacev1connect.ProjectServiceClient
+	// Secret is the SecretService client.
+	Secret workspacev1connect.SecretServiceClient
+	// Webhook is the WebhookService client.
+	Webhook workspacev1connect.WebhookServiceClient
+	// Display is the DisplayService client.
+	Display workspacev1connect.DisplayServiceClient
+	// Channel is the ChannelService client, its server stream included.
+	Channel ChannelClient
+	// Recording is the RecordingService client.
+	Recording workspacev1connect.RecordingServiceClient
+	// Volume is the VolumeService client.
+	Volume workspacev1connect.VolumeServiceClient
+	// Artifact is the ArtifactService client.
+	Artifact workspacev1connect.ArtifactServiceClient
+	// ArtifactUpload is the ArtifactUploadService client.
+	ArtifactUpload workspacev1connect.ArtifactUploadServiceClient
 
 	project     string
 	environment string
 	retry       RetryPolicy
+}
+
+// ChannelClient is the calls of ChannelService.
+type ChannelClient interface {
+	CreateChannel(context.Context, *connect.Request[workspacev1.CreateChannelRequest]) (*connect.Response[workspacev1.CreateChannelResponse], error)
+	ListChannels(context.Context, *connect.Request[workspacev1.ListChannelsRequest]) (*connect.Response[workspacev1.ListChannelsResponse], error)
+	GetChannel(context.Context, *connect.Request[workspacev1.GetChannelRequest]) (*connect.Response[workspacev1.GetChannelResponse], error)
+	GetChannelPolicy(context.Context, *connect.Request[workspacev1.GetChannelPolicyRequest]) (*connect.Response[workspacev1.GetChannelPolicyResponse], error)
+	SetChannelPolicy(context.Context, *connect.Request[workspacev1.SetChannelPolicyRequest]) (*connect.Response[workspacev1.SetChannelPolicyResponse], error)
+	ListChannelRequests(context.Context, *connect.Request[workspacev1.ListChannelRequestsRequest]) (*connect.Response[workspacev1.ListChannelRequestsResponse], error)
+	GetChannelRequest(context.Context, *connect.Request[workspacev1.GetChannelRequestRequest]) (*connect.Response[workspacev1.GetChannelRequestResponse], error)
+	ExportChannelLog(context.Context, *connect.Request[workspacev1.ExportChannelLogRequest]) (*connect.ServerStreamForClient[workspacev1.ExportChannelLogResponse], error)
+	CreateChannelConnectToken(context.Context, *connect.Request[workspacev1.CreateChannelConnectTokenRequest]) (*connect.Response[workspacev1.CreateChannelConnectTokenResponse], error)
+	RevokeChannelConnectToken(context.Context, *connect.Request[workspacev1.RevokeChannelConnectTokenRequest]) (*connect.Response[workspacev1.RevokeChannelConnectTokenResponse], error)
+	DeleteChannel(context.Context, *connect.Request[workspacev1.DeleteChannelRequest]) (*connect.Response[workspacev1.DeleteChannelResponse], error)
+	ListForwards(context.Context, *connect.Request[workspacev1.ListForwardsRequest]) (*connect.Response[workspacev1.ListForwardsResponse], error)
+	GetLink(context.Context, *connect.Request[workspacev1.GetLinkRequest]) (*connect.Response[workspacev1.GetLinkResponse], error)
 }
 
 // New builds a Client from opts, then from the environment. It returns an
@@ -80,16 +110,22 @@ func New(opts ...Option) (*Client, error) {
 	retry := retryInterceptor{policy: policy}
 	interceptors := connect.WithInterceptors(auth, scope, retry)
 
-	return &Client{
-		Workspace:   workspacev1connect.NewWorkspaceServiceClient(httpClient, server, interceptors),
-		Projects:    workspacev1connect.NewProjectServiceClient(httpClient, server, interceptors),
-		Secrets:     workspacev1connect.NewSecretServiceClient(httpClient, server, interceptors),
-		Webhooks:    workspacev1connect.NewWebhookServiceClient(httpClient, server, interceptors),
-		Displays:    workspacev1connect.NewDisplayServiceClient(httpClient, server, interceptors),
-		project:     cfg.project,
-		environment: cfg.environment,
-		retry:       policy,
-	}, nil
+	client := &Client{
+		Project:        workspacev1connect.NewProjectServiceClient(httpClient, server, interceptors),
+		Secret:         workspacev1connect.NewSecretServiceClient(httpClient, server, interceptors),
+		Webhook:        workspacev1connect.NewWebhookServiceClient(httpClient, server, interceptors),
+		Display:        workspacev1connect.NewDisplayServiceClient(httpClient, server, interceptors),
+		Channel:        workspacev1connect.NewChannelServiceClient(httpClient, server, interceptors),
+		Recording:      workspacev1connect.NewRecordingServiceClient(httpClient, server, interceptors),
+		Volume:         workspacev1connect.NewVolumeServiceClient(httpClient, server, interceptors),
+		Artifact:       workspacev1connect.NewArtifactServiceClient(httpClient, server, interceptors),
+		ArtifactUpload: workspacev1connect.NewArtifactUploadServiceClient(httpClient, server, interceptors),
+		project:        cfg.project,
+		environment:    cfg.environment,
+		retry:          policy,
+	}
+	client.Workload = newWorkloadClient(client, workspacev1connect.NewWorkloadServiceClient(httpClient, server, interceptors))
+	return client, nil
 }
 
 // resolveToken picks the token by the documented precedence: the option, the

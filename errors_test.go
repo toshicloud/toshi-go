@@ -56,3 +56,25 @@ func TestStreamLostErrorText(t *testing.T) {
 		})
 	}
 }
+
+// TestJobExitErrorText covers the three ways a job Run follows can end.
+func TestJobExitErrorText(t *testing.T) {
+	three := int32(3)
+	cases := []struct {
+		name string
+		end  *workspacev1.OutputEnd
+		want string
+	}{
+		{name: "cancelled", end: &workspacev1.OutputEnd{Cancelled: true}, want: "toshi: job job-1 was cancelled"},
+		{name: "status", end: &workspacev1.OutputEnd{ExitCode: &three}, want: "toshi: job job-1 exited with status 3"},
+		{name: "no status", end: &workspacev1.OutputEnd{}, want: "toshi: job job-1 ended without an exit status"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := &JobExitError{JobID: "job-1", End: tc.end}
+			if got := err.Error(); got != tc.want {
+				t.Fatalf("Error() %q, want %q", got, tc.want)
+			}
+		})
+	}
+}

@@ -25,6 +25,24 @@ func (e *ExitError) Error() string {
 	}
 }
 
+// JobExitError reports a job that Run followed and that did not exit 0.
+type JobExitError struct {
+	JobID string
+	End   *workspacev1.OutputEnd
+}
+
+// Error says how the job ended.
+func (e *JobExitError) Error() string {
+	switch {
+	case e.End.GetCancelled():
+		return fmt.Sprintf("toshi: job %s was cancelled", e.JobID)
+	case e.End.ExitCode == nil:
+		return fmt.Sprintf("toshi: job %s ended without an exit status", e.JobID)
+	default:
+		return fmt.Sprintf("toshi: job %s exited with status %d", e.JobID, e.End.GetExitCode())
+	}
+}
+
 // StreamLostError reports an Execute stream that ended before its exit
 // message. Standard input cannot be replayed, so the caller decides whether
 // to start again with the same request key.
