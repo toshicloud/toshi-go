@@ -44,8 +44,9 @@ under `Workload().Services()`, and the calls that span the three on
 `WaitOperation`).
 `Project()`, `Secret()`, `Webhook()`, `Display()`, `Channel()`, `Recording()`,
 `Volume()`, `Artifact()`, `ArtifactUpload()`, `Workspace()`, `HostJob()`,
-`Host()`, `Token()`, `AuditEvent()`, `Filler()` and `StorageProvider()` return
-the generated Connect clients of their service; `Channel()` is
+`Host()`, `Token()`, `AuditEvent()`, `Filler()`, `StorageProvider()`,
+`Product()` and `Discovery()` return the generated Connect clients of their
+service; `Channel()` is
 `ChannelClient`, which spells out the service's calls.
 
 `New` reads the server and token from `TOSHI_SERVER` and `TOSHI_TOKEN`
@@ -149,6 +150,48 @@ for job, err := range client.Workload().Jobs().All(ctx, &workspacev1.ListJobsReq
 		log.Fatal(err)
 	}
 	fmt.Println(job.GetId(), job.GetStatus().GetState())
+}
+```
+
+## Products that are off
+
+A call for a product that is off for the workspace, or that turns on an
+outside product without accepting the access it asks for, fails with a
+`*toshi.ProductError`. `errors.As` finds it on the error of any call, `Wait`,
+the watches and `Execute` included, and `connect.CodeOf` reads its code as
+before. It has the product's ID (`Product`), the `Reason`
+(`ReasonProductNotInstalled`, `ReasonProductDisabled`,
+`ReasonProductNotEntitled`, `ReasonProductTurnedOff` or
+`ReasonAccessNotAccepted`), the setting that turns the product on
+(`Feature`, such as `runners.enabled`), how far a product the deployment
+disables has wound down (`State`) and, for `ReasonAccessNotAccepted`, the
+access to accept (`Access`).
+
+<!-- ExampleProductError -->
+```go
+ctx := context.Background()
+client, err := toshi.New()
+if err != nil {
+	log.Fatal(err)
+}
+// Turning an outside product on installs it, and the API asks the
+// caller to accept the access it wants first.
+enable := &workspacev1.UpdateProductRequest{Id: "acme_ci", Enabled: proto.Bool(true)}
+_, err = client.Product().UpdateProduct(ctx, connect.NewRequest(enable))
+var refused *toshi.ProductError
+if errors.As(err, &refused) && refused.Reason == toshi.ReasonAccessNotAccepted {
+	fmt.Println(refused.Product, refused.Reason, refused.Access)
+	// Accept exactly the access the product asks for.
+	enable.AcceptedAccess = refused.Access
+	_, err = client.Product().UpdateProduct(ctx, connect.NewRequest(enable))
+}
+if errors.As(err, &refused) {
+	// Off for the workspace: say which product and why.
+	fmt.Println(refused.Product, refused.Reason, refused.Feature)
+	return
+}
+if err != nil {
+	log.Fatal(err)
 }
 ```
 

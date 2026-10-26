@@ -142,6 +142,12 @@ var hookOnly = map[string]bool{
 	workspacev1connect.StorageProviderServiceCreateStorageProviderProcedure: true,
 	workspacev1connect.StorageProviderServiceCheckStorageProviderProcedure:  true,
 	workspacev1connect.StorageProviderServiceDeleteStorageProviderProcedure: true,
+	// ProductService
+	workspacev1connect.ProductServiceListProductsProcedure:  true,
+	workspacev1connect.ProductServiceUpdateProductProcedure: true,
+	workspacev1connect.ProductServiceRemoveProductProcedure: true,
+	// DiscoveryService
+	workspacev1connect.DiscoveryServiceDiscoverProcedure: true,
 	// TokenService
 	workspacev1connect.TokenServiceListTokensProcedure:           true,
 	workspacev1connect.TokenServiceCreateWorkspaceTokenProcedure: true,

@@ -3,9 +3,11 @@ package integration_test
 import (
 	"context"
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
@@ -25,6 +27,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
@@ -37,6 +40,8 @@ const (
 	account        = "acme"
 	projectName    = "default"
 	environment    = "production"
+	// probeProduct is the outside product the catalog this test signs lists.
+	probeProduct = "sdk_probe"
 )
 
 func TestIntegration(t *testing.T) {
@@ -80,7 +85,7 @@ func TestIntegration(t *testing.T) {
 	fakePort := freePort(t)
 	baseURL := fmt.Sprintf("https://127.0.0.1:%d", servePort)
 	configPath := filepath.Join(dir, "toshi.toml")
-	writeConfig(t, configPath, dir, servePort, fakePort, certPath, keyPath, appKeyPath, webhookPath, operatorPath, localKeyPath)
+	writeConfig(t, configPath, dir, servePort, fakePort, certPath, keyPath, appKeyPath, webhookPath, operatorPath, localKeyPath, writeCatalog(t, bin, dir))
 
 	fakeLog := filepath.Join(dir, "fake.log")
 	serveLog := filepath.Join(dir, "serve.log")
@@ -547,6 +552,107 @@ func TestIntegration(t *testing.T) {
 			t.Fatalf("ListJobs from the environment client: %v", err)
 		}
 	})
+
+	// An outside product from the catalog: turning it on without accepting
+	// its access is ACCESS_NOT_ACCEPTED, and once it is turned off its
+	// installation token's calls are PRODUCT_TURNED_OFF.
+	t.Run("ProductError", func(t *testing.T) {
+		enable := &workspacev1.UpdateProductRequest{Id: probeProduct, Enabled: proto.Bool(true)}
+		_, err := wide.Product().UpdateProduct(ctx, connect.NewRequest(enable))
+		var refused *toshi.ProductError
+		if !errors.As(err, &refused) {
+			t.Fatalf("UpdateProduct without the access: got %v, want a ProductError", err)
+		}
+		if refused.Product != probeProduct || refused.Reason != toshi.ReasonAccessNotAccepted ||
+			strings.Join(refused.Access, ",") != "projects.read" || connect.CodeOf(err) != connect.CodeFailedPrecondition {
+			t.Fatalf("UpdateProduct without the access: %+v", refused)
+		}
+		t.Logf("refused: %s %s %v", refused.Product, refused.Reason, refused.Access)
+
+		enable.AcceptedAccess = refused.Access
+		res, err := wide.Product().UpdateProduct(ctx, connect.NewRequest(enable))
+		if err != nil {
+			t.Fatalf("UpdateProduct with the access: %v", err)
+		}
+		installed, err := toshi.New(
+			toshi.WithServer(baseURL),
+			toshi.WithToken(res.Msg.GetInstallationToken()),
+			toshi.WithCAFile(caPath),
+		)
+		if err != nil {
+			t.Fatalf("New with the installation token: %v", err)
+		}
+		list := connect.NewRequest(&workspacev1.ListProjectsRequest{})
+		if _, err := installed.Project().ListProjects(ctx, list); err != nil {
+			t.Fatalf("ListProjects with the installation token: %v", err)
+		}
+
+		if _, err := wide.Product().UpdateProduct(ctx, connect.NewRequest(&workspacev1.UpdateProductRequest{
+			Id: probeProduct, Enabled: proto.Bool(false),
+		})); err != nil {
+			t.Fatalf("turn the product off: %v", err)
+		}
+		_, err = installed.Project().ListProjects(ctx, connect.NewRequest(&workspacev1.ListProjectsRequest{}))
+		refused = nil
+		if !errors.As(err, &refused) || refused.Product != probeProduct || refused.Reason != toshi.ReasonProductTurnedOff {
+			t.Fatalf("ListProjects with the token of a product turned off: got %v, want PRODUCT_TURNED_OFF for %s", err, probeProduct)
+		}
+		t.Logf("refused: %s %s %s", refused.Product, refused.Reason, refused.Feature)
+
+		if _, err := wide.Product().RemoveProduct(ctx, connect.NewRequest(&workspacev1.RemoveProductRequest{Id: probeProduct})); err != nil {
+			t.Fatalf("RemoveProduct: %v", err)
+		}
+	})
+}
+
+// writeCatalog signs a catalog index that lists one outside product,
+// probeProduct, asking for projects.read, with a new Ed25519 key, and returns
+// the [[catalog.sources]] that trusts it.
+func writeCatalog(t *testing.T, bin, dir string) string {
+	t.Helper()
+	pub, priv, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	der, err := x509.MarshalPKCS8PrivateKey(priv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	keyPath := filepath.Join(dir, "catalog-key.pem")
+	writePEM(t, keyPath, "PRIVATE KEY", der, 0o600)
+
+	// The key's ID is its JWK thumbprint (RFC 7638).
+	jwk := fmt.Sprintf(`{"crv":"Ed25519","kty":"OKP","x":%q}`, base64.RawURLEncoding.EncodeToString(pub))
+	sum := sha256.Sum256([]byte(jwk))
+	index, err := json.Marshal(map[string]any{
+		"format": 1,
+		"key_id": base64.RawURLEncoding.EncodeToString(sum[:]),
+		"entries": []map[string]any{{
+			"id":          probeProduct,
+			"name":        "SDK probe",
+			"publisher":   "sdk",
+			"version":     "1.0.0",
+			"description": "An outside product the SDK's integration test installs.",
+			"access":      []string{"projects.read"},
+			"runs":        map[string]string{"where": "publisher"},
+			"docs":        "https://example.com/sdk-probe",
+		}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	indexPath := filepath.Join(dir, "catalog.json")
+	if err := os.WriteFile(indexPath, index, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	run(t, nil, bin, "product", "catalog", "sign", indexPath, "--key", keyPath)
+	return fmt.Sprintf(`
+[[catalog.sources]]
+name = "sdk"
+path = %q
+keys = ["ed25519:%s"]
+publishers = ["sdk"]
+`, indexPath, base64.StdEncoding.EncodeToString(pub))
 }
 
 func secretNames(secrets []*workspacev1.Secret) map[string]bool {
@@ -643,7 +749,7 @@ func writePEM(t *testing.T, path, blockType string, der []byte, mode os.FileMode
 }
 
 // writeConfig writes the control plane's configuration.
-func writeConfig(t *testing.T, path, dir string, servePort, fakePort int, certPath, keyPath, appKeyPath, webhookPath, operatorPath, localKeyPath string) {
+func writeConfig(t *testing.T, path, dir string, servePort, fakePort int, certPath, keyPath, appKeyPath, webhookPath, operatorPath, localKeyPath, catalog string) {
 	t.Helper()
 	dataDir := filepath.Join(dir, "data")
 	if err := os.MkdirAll(dataDir, 0o700); err != nil {
@@ -670,7 +776,7 @@ app_id = 1
 base_url = "http://127.0.0.1:%d"
 private_key_file = %q
 webhook_secret_file = %q
-`, servePort, dataDir, certPath, keyPath, operatorPath, localKeyPath, fakePort, appKeyPath, webhookPath)
+`, servePort, dataDir, certPath, keyPath, operatorPath, localKeyPath, fakePort, appKeyPath, webhookPath) + catalog
 	if err := os.WriteFile(path, []byte(config), 0o600); err != nil {
 		t.Fatal(err)
 	}
