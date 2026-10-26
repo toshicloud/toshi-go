@@ -40,7 +40,7 @@ func TestScopeOnWatchStreams(t *testing.T) {
 			t.Helper()
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
-			watch, err := client.Workload.Jobs.Watch(ctx, req)
+			watch, err := client.Workload().Jobs().Watch(ctx, req)
 			if err != nil {
 				t.Fatalf("Watch: %v", err)
 			}
@@ -90,7 +90,7 @@ func TestScopeOnWatchStreams(t *testing.T) {
 			t.Helper()
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
-			watch, err := client.Workload.WatchEvents(ctx, req)
+			watch, err := client.Workload().WatchEvents(ctx, req)
 			if err != nil {
 				t.Fatalf("WatchEvents: %v", err)
 			}
@@ -127,7 +127,7 @@ func TestScopeOnWatchStreams(t *testing.T) {
 		client := newTestClient(t, server, WithScope("proj", "env"))
 		check := func(t *testing.T, req *workspacev1.WatchOutputRequest, wantProject string) {
 			t.Helper()
-			watch, err := client.Workload.Jobs.WatchOutput(context.Background(), req)
+			watch, err := client.Workload().Jobs().WatchOutput(context.Background(), req)
 			if err != nil {
 				t.Fatalf("WatchOutput: %v", err)
 			}
@@ -179,7 +179,7 @@ func TestScopeOnRawStreams(t *testing.T) {
 		}
 	}
 
-	events, err := client.Workload.WatchEvents(ctx, &workspacev1.WatchEventsRequest{Cursor: "c0"})
+	events, err := client.Workload().WatchEvents(ctx, &workspacev1.WatchEventsRequest{Cursor: "c0"})
 	if err != nil {
 		t.Fatalf("WatchEvents: %v", err)
 	}
@@ -189,7 +189,7 @@ func TestScopeOnRawStreams(t *testing.T) {
 	assert("events", "proj", "env")
 	_ = events.Close()
 
-	telemetry, err := client.Workload.Sandboxes.WatchTelemetry(ctx, &workspacev1.WatchTelemetryRequest{Id: "sb-1"})
+	telemetry, err := client.Workload().Sandboxes().WatchTelemetry(ctx, &workspacev1.WatchTelemetryRequest{Id: "sb-1"})
 	if err != nil {
 		t.Fatalf("WatchTelemetry: %v", err)
 	}
@@ -199,7 +199,7 @@ func TestScopeOnRawStreams(t *testing.T) {
 	assert("telemetry", "proj", "env")
 	_ = telemetry.Close()
 
-	explicit, err := client.Workload.WatchEvents(ctx, &workspacev1.WatchEventsRequest{Cursor: "c0", Project: "p2", Environment: "e2"})
+	explicit, err := client.Workload().WatchEvents(ctx, &workspacev1.WatchEventsRequest{Cursor: "c0", Project: "p2", Environment: "e2"})
 	if err != nil {
 		t.Fatalf("WatchEvents explicit: %v", err)
 	}
@@ -232,7 +232,7 @@ func TestScopeOnExecuteStart(t *testing.T) {
 		t.Helper()
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
-		p, err := client.Workload.Sandboxes.Execute(ctx, &workspacev1.ExecuteStart{
+		p, err := client.Workload().Sandboxes().Execute(ctx, &workspacev1.ExecuteStart{
 			SandboxId:   "sb-1",
 			Project:     project,
 			Environment: environment,

@@ -12,12 +12,12 @@ import (
 // Run creates a job and follows its output, as `toshi run` does. It returns
 // once the job exists: read Stdout and Stderr at the same time, and Wait
 // follows the job to its end. A caller that stops reading does not stop the
-// job; cancel the job with Workload.Jobs.Cancel.
+// job; cancel the job with Workload().Jobs().Cancel.
 func (c *Client) Run(ctx context.Context, req *workspacev1.CreateJobRequest) (*JobRun, error) {
 	if req == nil {
 		return nil, errors.New("toshi: Run needs a create request")
 	}
-	resp, err := c.Workload.Jobs.Create(ctx, req)
+	resp, err := c.Workload().Jobs().Create(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func (c *Client) Run(ctx context.Context, req *workspacev1.CreateJobRequest) (*J
 		return run, nil
 	}
 
-	watch, err := c.Workload.Jobs.WatchOutput(runCtx, &workspacev1.WatchOutputRequest{
+	watch, err := c.Workload().Jobs().WatchOutput(runCtx, &workspacev1.WatchOutputRequest{
 		Project:     job.GetProject(),
 		Environment: job.GetEnvironment(),
 		Id:          job.GetId(),

@@ -121,19 +121,19 @@ func TestWaitPausesBetweenAttempts(t *testing.T) {
 		wait func(context.Context, *Client) error
 	}{
 		{"jobs", func(ctx context.Context, c *Client) error {
-			_, err := c.Workload.Jobs.Wait(ctx, &workspacev1.WaitJobRequest{})
+			_, err := c.Workload().Jobs().Wait(ctx, &workspacev1.WaitJobRequest{})
 			return err
 		}},
 		{"sandboxes", func(ctx context.Context, c *Client) error {
-			_, err := c.Workload.Sandboxes.Wait(ctx, &workspacev1.WaitSandboxRequest{})
+			_, err := c.Workload().Sandboxes().Wait(ctx, &workspacev1.WaitSandboxRequest{})
 			return err
 		}},
 		{"services", func(ctx context.Context, c *Client) error {
-			_, err := c.Workload.Services.Wait(ctx, &workspacev1.WaitServiceRequest{})
+			_, err := c.Workload().Services().Wait(ctx, &workspacev1.WaitServiceRequest{})
 			return err
 		}},
 		{"operation", func(ctx context.Context, c *Client) error {
-			_, err := c.Workload.WaitOperation(ctx, &workspacev1.WaitOperationRequest{})
+			_, err := c.Workload().WaitOperation(ctx, &workspacev1.WaitOperationRequest{})
 			return err
 		}},
 	}
@@ -184,7 +184,7 @@ func TestWaitContextEndsThePause(t *testing.T) {
 		cancel()
 	}()
 
-	_, err := client.Workload.Jobs.Wait(ctx, &workspacev1.WaitJobRequest{})
+	_, err := client.Workload().Jobs().Wait(ctx, &workspacev1.WaitJobRequest{})
 	if err == nil {
 		t.Fatal("Wait returned no error after its context ended")
 	}

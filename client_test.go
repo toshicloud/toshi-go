@@ -53,7 +53,7 @@ func TestTokenAndServerPrecedence(t *testing.T) {
 	authorization := func(t *testing.T, client *toshi.Client) string {
 		t.Helper()
 		before := len(tt.Calls())
-		if _, err := client.Project.ListProjects(context.Background(), connect.NewRequest(&workspacev1.ListProjectsRequest{})); err != nil {
+		if _, err := client.Project().ListProjects(context.Background(), connect.NewRequest(&workspacev1.ListProjectsRequest{})); err != nil {
 			t.Fatalf("ListProjects: %v", err)
 		}
 		calls := tt.Calls()
@@ -155,7 +155,7 @@ func TestCAFileTrustsServer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
-	if _, err := client.Project.ListProjects(context.Background(), connect.NewRequest(&workspacev1.ListProjectsRequest{})); err != nil {
+	if _, err := client.Project().ListProjects(context.Background(), connect.NewRequest(&workspacev1.ListProjectsRequest{})); err != nil {
 		t.Fatalf("ListProjects over the CA file: %v", err)
 	}
 
@@ -191,10 +191,10 @@ func TestBearerOnUnaryAndStreams(t *testing.T) {
 
 	client := tt.Client()
 	ctx := context.Background()
-	if _, err := client.Project.ListProjects(ctx, connect.NewRequest(&workspacev1.ListProjectsRequest{})); err != nil {
+	if _, err := client.Project().ListProjects(ctx, connect.NewRequest(&workspacev1.ListProjectsRequest{})); err != nil {
 		t.Fatalf("ListProjects: %v", err)
 	}
-	watch, err := client.Workload.Jobs.WatchOutput(ctx, &workspacev1.WatchOutputRequest{Id: "job-1"})
+	watch, err := client.Workload().Jobs().WatchOutput(ctx, &workspacev1.WatchOutputRequest{Id: "job-1"})
 	if err != nil {
 		t.Fatalf("WatchOutput: %v", err)
 	}
@@ -216,10 +216,10 @@ func TestBearerOnUnaryAndStreams(t *testing.T) {
 	}
 }
 
-// TestClientFieldsCallTheirServices proves each field of Client reaches its
+// TestClientMethodsCallTheirServices proves each method of Client reaches its
 // own service. The fake answers UNIMPLEMENTED for the procedures it has no
 // state for, which still proves the call reached that service.
-func TestClientFieldsCallTheirServices(t *testing.T) {
+func TestClientMethodsCallTheirServices(t *testing.T) {
 	tt := toshitest.New(t)
 	client := tt.Client()
 	ctx := context.Background()
@@ -230,39 +230,39 @@ func TestClientFieldsCallTheirServices(t *testing.T) {
 			t.Fatalf("%s: %v", name, err)
 		}
 	}
-	_, err := client.Workload.Jobs.Create(ctx, &workspacev1.CreateJobRequest{})
-	check("Workload.Jobs", err)
-	_, err = client.Project.ListProjects(ctx, connect.NewRequest(&workspacev1.ListProjectsRequest{}))
+	_, err := client.Workload().Jobs().Create(ctx, &workspacev1.CreateJobRequest{})
+	check("Workload().Jobs()", err)
+	_, err = client.Project().ListProjects(ctx, connect.NewRequest(&workspacev1.ListProjectsRequest{}))
 	check("Project", err)
-	_, err = client.Secret.PutSecret(ctx, connect.NewRequest(&workspacev1.PutSecretRequest{Name: "k", Value: []byte("v")}))
+	_, err = client.Secret().PutSecret(ctx, connect.NewRequest(&workspacev1.PutSecretRequest{Name: "k", Value: []byte("v")}))
 	check("Secret", err)
-	_, err = client.Webhook.ListWebhookEndpoints(ctx, connect.NewRequest(&workspacev1.ListWebhookEndpointsRequest{}))
+	_, err = client.Webhook().ListWebhookEndpoints(ctx, connect.NewRequest(&workspacev1.ListWebhookEndpointsRequest{}))
 	check("Webhook", err)
-	_, err = client.Display.OpenDisplaySession(ctx, connect.NewRequest(&workspacev1.OpenDisplaySessionRequest{}))
+	_, err = client.Display().OpenDisplaySession(ctx, connect.NewRequest(&workspacev1.OpenDisplaySessionRequest{}))
 	check("Display", err)
-	_, err = client.Channel.ListChannels(ctx, connect.NewRequest(&workspacev1.ListChannelsRequest{JobId: "job-1"}))
+	_, err = client.Channel().ListChannels(ctx, connect.NewRequest(&workspacev1.ListChannelsRequest{JobId: "job-1"}))
 	check("Channel", err)
-	_, err = client.Recording.ListRecordings(ctx, connect.NewRequest(&workspacev1.ListRecordingsRequest{WorkloadId: "job-1"}))
+	_, err = client.Recording().ListRecordings(ctx, connect.NewRequest(&workspacev1.ListRecordingsRequest{WorkloadId: "job-1"}))
 	check("Recording", err)
-	_, err = client.Volume.ListVolumes(ctx, connect.NewRequest(&workspacev1.ListVolumesRequest{}))
+	_, err = client.Volume().ListVolumes(ctx, connect.NewRequest(&workspacev1.ListVolumesRequest{}))
 	check("Volume", err)
-	_, err = client.Artifact.ListArtifacts(ctx, connect.NewRequest(&workspacev1.ListArtifactsRequest{WorkloadId: "job-1"}))
+	_, err = client.Artifact().ListArtifacts(ctx, connect.NewRequest(&workspacev1.ListArtifactsRequest{WorkloadId: "job-1"}))
 	check("Artifact", err)
-	_, err = client.ArtifactUpload.ReserveUpload(ctx, connect.NewRequest(&workspacev1.ReserveUploadRequest{}))
+	_, err = client.ArtifactUpload().ReserveUpload(ctx, connect.NewRequest(&workspacev1.ReserveUploadRequest{}))
 	check("ArtifactUpload", err)
-	_, err = client.Workspace.ListWorkspaces(ctx, connect.NewRequest(&workspacev1.ListWorkspacesRequest{}))
+	_, err = client.Workspace().ListWorkspaces(ctx, connect.NewRequest(&workspacev1.ListWorkspacesRequest{}))
 	check("Workspace", err)
-	_, err = client.HostJob.ListHostJobs(ctx, connect.NewRequest(&workspacev1.ListHostJobsRequest{}))
+	_, err = client.HostJob().ListHostJobs(ctx, connect.NewRequest(&workspacev1.ListHostJobsRequest{}))
 	check("HostJob", err)
-	_, err = client.Host.ListHosts(ctx, connect.NewRequest(&workspacev1.ListHostsRequest{}))
+	_, err = client.Host().ListHosts(ctx, connect.NewRequest(&workspacev1.ListHostsRequest{}))
 	check("Host", err)
-	_, err = client.Token.ListTokens(ctx, connect.NewRequest(&workspacev1.ListTokensRequest{}))
+	_, err = client.Token().ListTokens(ctx, connect.NewRequest(&workspacev1.ListTokensRequest{}))
 	check("Token", err)
-	_, err = client.AuditEvent.ListAuditEvents(ctx, connect.NewRequest(&workspacev1.ListAuditEventsRequest{}))
+	_, err = client.AuditEvent().ListAuditEvents(ctx, connect.NewRequest(&workspacev1.ListAuditEventsRequest{}))
 	check("AuditEvent", err)
-	_, err = client.Filler.ListFillers(ctx, connect.NewRequest(&workspacev1.ListFillersRequest{}))
+	_, err = client.Filler().ListFillers(ctx, connect.NewRequest(&workspacev1.ListFillersRequest{}))
 	check("Filler", err)
-	_, err = client.StorageProvider.ListStorageProviders(ctx, connect.NewRequest(&workspacev1.ListStorageProvidersRequest{}))
+	_, err = client.StorageProvider().ListStorageProviders(ctx, connect.NewRequest(&workspacev1.ListStorageProvidersRequest{}))
 	check("StorageProvider", err)
 
 	want := []string{
@@ -313,7 +313,7 @@ func TestScopeFilling(t *testing.T) {
 
 	t.Run("workload", func(t *testing.T) {
 		client := tt.Client(toshi.WithScope("proj", "env"))
-		if _, err := client.Workload.Jobs.Create(ctx, &workspacev1.CreateJobRequest{}); err != nil {
+		if _, err := client.Workload().Jobs().Create(ctx, &workspacev1.CreateJobRequest{}); err != nil {
 			t.Fatal(err)
 		}
 		if created.GetProject() != "proj" || created.GetEnvironment() != "env" {
@@ -323,7 +323,7 @@ func TestScopeFilling(t *testing.T) {
 
 	t.Run("set values stay", func(t *testing.T) {
 		client := tt.Client(toshi.WithScope("proj", "env"))
-		if _, err := client.Workload.Jobs.Create(ctx, &workspacev1.CreateJobRequest{Project: "p2", Environment: "e2"}); err != nil {
+		if _, err := client.Workload().Jobs().Create(ctx, &workspacev1.CreateJobRequest{Project: "p2", Environment: "e2"}); err != nil {
 			t.Fatal(err)
 		}
 		if created.GetProject() != "p2" || created.GetEnvironment() != "e2" {
@@ -333,7 +333,7 @@ func TestScopeFilling(t *testing.T) {
 
 	t.Run("no scope fills nothing", func(t *testing.T) {
 		client := tt.Client(toshi.WithScope("", ""))
-		if _, err := client.Workload.Jobs.Create(ctx, &workspacev1.CreateJobRequest{}); err != nil {
+		if _, err := client.Workload().Jobs().Create(ctx, &workspacev1.CreateJobRequest{}); err != nil {
 			t.Fatal(err)
 		}
 		if created.GetProject() != "" || created.GetEnvironment() != "" {
@@ -343,7 +343,7 @@ func TestScopeFilling(t *testing.T) {
 
 	t.Run("shared secret keeps environment empty", func(t *testing.T) {
 		client := tt.Client(toshi.WithScope("proj", "env"))
-		if _, err := client.Secret.PutSecret(ctx, connect.NewRequest(&workspacev1.PutSecretRequest{Shared: true, Name: "k", Value: []byte("v")})); err != nil {
+		if _, err := client.Secret().PutSecret(ctx, connect.NewRequest(&workspacev1.PutSecretRequest{Shared: true, Name: "k", Value: []byte("v")})); err != nil {
 			t.Fatal(err)
 		}
 		if secret.GetProject() != "proj" || secret.GetEnvironment() != "" {
@@ -353,7 +353,7 @@ func TestScopeFilling(t *testing.T) {
 
 	t.Run("environment secret", func(t *testing.T) {
 		client := tt.Client(toshi.WithScope("proj", "env"))
-		if _, err := client.Secret.PutSecret(ctx, connect.NewRequest(&workspacev1.PutSecretRequest{Name: "k", Value: []byte("v")})); err != nil {
+		if _, err := client.Secret().PutSecret(ctx, connect.NewRequest(&workspacev1.PutSecretRequest{Name: "k", Value: []byte("v")})); err != nil {
 			t.Fatal(err)
 		}
 		if secret.GetEnvironment() != "env" {
@@ -363,7 +363,7 @@ func TestScopeFilling(t *testing.T) {
 
 	t.Run("both set pass through", func(t *testing.T) {
 		client := tt.Client(toshi.WithScope("proj", "env"))
-		if _, err := client.Secret.PutSecret(ctx, connect.NewRequest(&workspacev1.PutSecretRequest{Shared: true, Environment: "e3", Name: "k", Value: []byte("v")})); err != nil {
+		if _, err := client.Secret().PutSecret(ctx, connect.NewRequest(&workspacev1.PutSecretRequest{Shared: true, Environment: "e3", Name: "k", Value: []byte("v")})); err != nil {
 			t.Fatal(err)
 		}
 		if secret.GetEnvironment() != "e3" {
@@ -383,7 +383,7 @@ func TestReadRetriedOnUnavailable(t *testing.T) {
 			return &workspacev1.GetJobResponse{Job: &workspacev1.Job{Id: "job-1"}}, nil
 		})
 	client := tt.Client(toshi.WithRetryPolicy(fastPolicy()))
-	resp, err := client.Workload.Jobs.Get(context.Background(), &workspacev1.GetJobRequest{})
+	resp, err := client.Workload().Jobs().Get(context.Background(), &workspacev1.GetJobRequest{})
 	if err != nil {
 		t.Fatalf("GetJob: %v", err)
 	}
@@ -409,7 +409,7 @@ func TestErrorsAreNotRetried(t *testing.T) {
 					return nil, connect.NewError(code, errors.New("refused"))
 				})
 			client := tt.Client(toshi.WithRetryPolicy(fastPolicy()))
-			_, err := client.Workload.Jobs.Get(context.Background(), &workspacev1.GetJobRequest{})
+			_, err := client.Workload().Jobs().Get(context.Background(), &workspacev1.GetJobRequest{})
 			if connect.CodeOf(err) != code || calls.Load() != 1 {
 				t.Fatalf("code %v after %d calls", connect.CodeOf(err), calls.Load())
 			}
@@ -431,10 +431,10 @@ func TestNoneClassIsNotRetried(t *testing.T) {
 			return nil, connect.NewError(connect.CodeUnavailable, errors.New("down"))
 		})
 	client := tt.Client(toshi.WithScope("proj", "env"), toshi.WithRetryPolicy(fastPolicy()))
-	if _, err := client.Display.OpenDisplaySession(context.Background(), connect.NewRequest(&workspacev1.OpenDisplaySessionRequest{})); connect.CodeOf(err) != connect.CodeUnavailable {
+	if _, err := client.Display().OpenDisplaySession(context.Background(), connect.NewRequest(&workspacev1.OpenDisplaySessionRequest{})); connect.CodeOf(err) != connect.CodeUnavailable {
 		t.Fatalf("open display: %v", err)
 	}
-	if _, err := client.Secret.PutSecret(context.Background(), connect.NewRequest(&workspacev1.PutSecretRequest{Name: "k", Value: []byte("v")})); connect.CodeOf(err) != connect.CodeUnavailable {
+	if _, err := client.Secret().PutSecret(context.Background(), connect.NewRequest(&workspacev1.PutSecretRequest{Name: "k", Value: []byte("v")})); connect.CodeOf(err) != connect.CodeUnavailable {
 		t.Fatalf("put secret: %v", err)
 	}
 	if displays.Load() != 1 || secrets.Load() != 1 {
@@ -464,7 +464,7 @@ func TestKeyedWriteFillsAndKeepsKey(t *testing.T) {
 		})
 	client := tt.Client(toshi.WithScope("proj", "env"), toshi.WithRetryPolicy(fastPolicy()))
 	create := &workspacev1.CreateJobRequest{}
-	if _, err := client.Workload.Jobs.Create(context.Background(), create); err != nil {
+	if _, err := client.Workload().Jobs().Create(context.Background(), create); err != nil {
 		t.Fatalf("CreateJob: %v", err)
 	}
 	if len(keys) != 2 || keys[0] == "" || keys[0] != keys[1] {
@@ -480,7 +480,7 @@ func TestKeyedWriteFillsAndKeepsKey(t *testing.T) {
 	keys = nil
 	calls.Store(2)
 	update := &workspacev1.UpdateJobRequest{RequestKey: "given-key"}
-	if _, err := client.Workload.Jobs.Update(context.Background(), update); err != nil {
+	if _, err := client.Workload().Jobs().Update(context.Background(), update); err != nil {
 		t.Fatalf("UpdateJob: %v", err)
 	}
 	if len(keys) != 2 || keys[0] != "given-key" || keys[1] != "given-key" || update.GetRequestKey() != "given-key" {
@@ -502,7 +502,7 @@ func TestBackoffStopsOnContextEnd(t *testing.T) {
 			return nil, connect.NewError(connect.CodeUnavailable, errors.New("down"))
 		})
 	client := tt.Client(toshi.WithRetryPolicy(toshi.RetryPolicy{MaxAttempts: 5, InitialBackoff: time.Hour, MaxBackoff: time.Hour}))
-	_, err := client.Workload.Jobs.Get(ctx, &workspacev1.GetJobRequest{})
+	_, err := client.Workload().Jobs().Get(ctx, &workspacev1.GetJobRequest{})
 	if connect.CodeOf(err) != connect.CodeCanceled {
 		t.Fatalf("err %v, want canceled", err)
 	}
@@ -522,7 +522,7 @@ func TestWaitJobAsksAgain(t *testing.T) {
 			return &workspacev1.WaitJobResponse{Reached: true, Job: &workspacev1.Job{Id: "job-1"}}, nil
 		})
 	client := tt.Client(toshi.WithRetryPolicy(fastPolicy()))
-	resp, err := client.Workload.Jobs.Wait(context.Background(), &workspacev1.WaitJobRequest{})
+	resp, err := client.Workload().Jobs().Wait(context.Background(), &workspacev1.WaitJobRequest{})
 	if err != nil {
 		t.Fatalf("WaitJob: %v", err)
 	}
@@ -543,7 +543,7 @@ func TestWaitJobStopsOnContext(t *testing.T) {
 			return &workspacev1.WaitJobResponse{Reached: false}, nil
 		})
 	client := tt.Client(toshi.WithRetryPolicy(fastPolicy()))
-	_, err := client.Workload.Jobs.Wait(ctx, &workspacev1.WaitJobRequest{})
+	_, err := client.Workload().Jobs().Wait(ctx, &workspacev1.WaitJobRequest{})
 	if connect.CodeOf(err) != connect.CodeCanceled {
 		t.Fatalf("err %v, want canceled", err)
 	}
@@ -560,7 +560,7 @@ func TestWaitOperationAsksAgain(t *testing.T) {
 			return &workspacev1.WaitOperationResponse{Operation: &workspacev1.Operation{Id: "op1", Done: true}}, nil
 		})
 	client := tt.Client(toshi.WithRetryPolicy(fastPolicy()))
-	op, err := client.Workload.WaitOperation(context.Background(), &workspacev1.WaitOperationRequest{})
+	op, err := client.Workload().WaitOperation(context.Background(), &workspacev1.WaitOperationRequest{})
 	if err != nil {
 		t.Fatalf("WaitOperation: %v", err)
 	}
@@ -573,5 +573,44 @@ func TestDefaultRetryPolicy(t *testing.T) {
 	policy := toshi.DefaultRetryPolicy()
 	if policy.MaxAttempts != 5 || policy.InitialBackoff != 200*time.Millisecond || policy.MaxBackoff != 10*time.Second {
 		t.Fatalf("policy %+v", policy)
+	}
+}
+
+// TestAccessorsReturnSameClient proves each accessor returns the client New
+// built, not a new one on each call.
+func TestAccessorsReturnSameClient(t *testing.T) {
+	client, err := toshi.New(toshi.WithServer("https://127.0.0.1:1"), toshi.WithToken("token"))
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	workload := client.Workload()
+	for _, tc := range []struct {
+		name         string
+		first, again any
+	}{
+		{"Workload", client.Workload(), client.Workload()},
+		{"Project", client.Project(), client.Project()},
+		{"Secret", client.Secret(), client.Secret()},
+		{"Webhook", client.Webhook(), client.Webhook()},
+		{"Display", client.Display(), client.Display()},
+		{"Channel", client.Channel(), client.Channel()},
+		{"Recording", client.Recording(), client.Recording()},
+		{"Volume", client.Volume(), client.Volume()},
+		{"Artifact", client.Artifact(), client.Artifact()},
+		{"ArtifactUpload", client.ArtifactUpload(), client.ArtifactUpload()},
+		{"Workspace", client.Workspace(), client.Workspace()},
+		{"HostJob", client.HostJob(), client.HostJob()},
+		{"Host", client.Host(), client.Host()},
+		{"Token", client.Token(), client.Token()},
+		{"AuditEvent", client.AuditEvent(), client.AuditEvent()},
+		{"Filler", client.Filler(), client.Filler()},
+		{"StorageProvider", client.StorageProvider(), client.StorageProvider()},
+		{"Workload Jobs", workload.Jobs(), workload.Jobs()},
+		{"Workload Sandboxes", workload.Sandboxes(), workload.Sandboxes()},
+		{"Workload Services", workload.Services(), workload.Services()},
+	} {
+		if tc.first != tc.again {
+			t.Errorf("%s returned a new client", tc.name)
+		}
 	}
 }

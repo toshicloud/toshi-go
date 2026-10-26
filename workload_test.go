@@ -34,7 +34,7 @@ func TestListEventsSendsTheRequestUnchanged(t *testing.T) {
 	})
 	client := newTestClient(t, server)
 
-	resp, err := client.Workload.ListEvents(context.Background(), want)
+	resp, err := client.Workload().ListEvents(context.Background(), want)
 	if err != nil {
 		t.Fatalf("ListEvents: %v", err)
 	}
@@ -63,7 +63,7 @@ func TestListEventsRetriedAsRead(t *testing.T) {
 	})
 	client := newTestClient(t, server)
 
-	resp, err := client.Workload.ListEvents(context.Background(), &workspacev1.ListEventsRequest{})
+	resp, err := client.Workload().ListEvents(context.Background(), &workspacev1.ListEventsRequest{})
 	if err != nil {
 		t.Fatalf("ListEvents: %v", err)
 	}

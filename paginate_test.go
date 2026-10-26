@@ -64,7 +64,7 @@ func TestAllFollowsThePageTokens(t *testing.T) {
 	})
 
 	var got []string
-	for job, err := range tt.Client().Workload.Jobs.All(context.Background(), &workspacev1.ListJobsRequest{}) {
+	for job, err := range tt.Client().Workload().Jobs().All(context.Background(), &workspacev1.ListJobsRequest{}) {
 		if err != nil {
 			t.Fatalf("All: %v", err)
 		}
@@ -87,7 +87,7 @@ func TestAllStopsWhenTheLoopBreaks(t *testing.T) {
 	})
 
 	seen := 0
-	for job, err := range tt.Client().Workload.Jobs.All(context.Background(), &workspacev1.ListJobsRequest{}) {
+	for job, err := range tt.Client().Workload().Jobs().All(context.Background(), &workspacev1.ListJobsRequest{}) {
 		if err != nil {
 			t.Fatalf("All: %v", err)
 		}
@@ -119,7 +119,7 @@ func TestAllYieldsAnErrorOnce(t *testing.T) {
 
 	var jobs []string
 	var errs []error
-	for job, err := range tt.Client().Workload.Jobs.All(context.Background(), &workspacev1.ListJobsRequest{}) {
+	for job, err := range tt.Client().Workload().Jobs().All(context.Background(), &workspacev1.ListJobsRequest{}) {
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -148,7 +148,7 @@ func TestAllLeavesTheRequestUnchanged(t *testing.T) {
 
 	req := &workspacev1.ListJobsRequest{PageSize: 2, PageToken: "page-1"}
 	want := proto.Clone(req).(*workspacev1.ListJobsRequest)
-	for job, err := range tt.Client().Workload.Jobs.All(context.Background(), req) {
+	for job, err := range tt.Client().Workload().Jobs().All(context.Background(), req) {
 		if err != nil {
 			t.Fatalf("All: %v", err)
 		}
@@ -184,7 +184,7 @@ func TestPaginateOverAGeneratedList(t *testing.T) {
 
 	var got []string
 	for project, err := range toshi.Paginate(context.Background(), &workspacev1.ListProjectsRequest{},
-		tt.Client().Project.ListProjects,
+		tt.Client().Project().ListProjects,
 		func(resp *workspacev1.ListProjectsResponse) []*workspacev1.Project { return resp.Projects }) {
 		if err != nil {
 			t.Fatalf("Paginate: %v", err)

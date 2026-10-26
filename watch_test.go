@@ -71,7 +71,7 @@ func TestWatchJobsSnapshotAndResume(t *testing.T) {
 	client := newTestClient(t, server)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	watch, err := client.Workload.Jobs.Watch(ctx, &workspacev1.WatchJobsRequest{})
+	watch, err := client.Workload().Jobs().Watch(ctx, &workspacev1.WatchJobsRequest{})
 	if err != nil {
 		t.Fatalf("WatchJobs: %v", err)
 	}
@@ -129,7 +129,7 @@ func TestWatchJobsRefusedCursor(t *testing.T) {
 		},
 	})
 	client := newTestClient(t, server)
-	watch, err := client.Workload.Jobs.Watch(context.Background(), &workspacev1.WatchJobsRequest{Cursor: "old"})
+	watch, err := client.Workload().Jobs().Watch(context.Background(), &workspacev1.WatchJobsRequest{Cursor: "old"})
 	if err == nil {
 		if watch.Receive() {
 			t.Fatal("Receive returned a message")
@@ -192,7 +192,7 @@ func TestWatchEventsPagesThenWatch(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	first, err := client.Workload.WatchEvents(ctx, &workspacev1.WatchEventsRequest{})
+	first, err := client.Workload().WatchEvents(ctx, &workspacev1.WatchEventsRequest{})
 	if err != nil {
 		t.Fatalf("WatchEvents: %v", err)
 	}
@@ -206,7 +206,7 @@ func TestWatchEventsPagesThenWatch(t *testing.T) {
 		t.Fatalf("Close: %v", err)
 	}
 
-	second, err := client.Workload.WatchEvents(ctx, &workspacev1.WatchEventsRequest{Cursor: first.Cursor()})
+	second, err := client.Workload().WatchEvents(ctx, &workspacev1.WatchEventsRequest{Cursor: first.Cursor()})
 	if err != nil {
 		t.Fatalf("WatchEvents resume: %v", err)
 	}
@@ -254,7 +254,7 @@ func TestWatchEventsEmptyPageStartsWatch(t *testing.T) {
 	client := newTestClient(t, server)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	watch, err := client.Workload.WatchEvents(ctx, &workspacev1.WatchEventsRequest{})
+	watch, err := client.Workload().WatchEvents(ctx, &workspacev1.WatchEventsRequest{})
 	if err != nil {
 		t.Fatalf("WatchEvents: %v", err)
 	}
@@ -294,7 +294,7 @@ func TestWatchEventsKeepaliveCursorResumes(t *testing.T) {
 	client := newTestClient(t, server)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	watch, err := client.Workload.WatchEvents(ctx, &workspacev1.WatchEventsRequest{Cursor: "c0"})
+	watch, err := client.Workload().WatchEvents(ctx, &workspacev1.WatchEventsRequest{Cursor: "c0"})
 	if err != nil {
 		t.Fatalf("WatchEvents: %v", err)
 	}
@@ -319,7 +319,7 @@ func TestWatchEventsRefusedCursor(t *testing.T) {
 		},
 	})
 	client := newTestClient(t, server)
-	watch, err := client.Workload.WatchEvents(context.Background(), &workspacev1.WatchEventsRequest{Cursor: "old"})
+	watch, err := client.Workload().WatchEvents(context.Background(), &workspacev1.WatchEventsRequest{Cursor: "old"})
 	if err == nil {
 		if watch.Receive() {
 			t.Fatal("Receive returned an event")
@@ -358,7 +358,7 @@ func TestWatchOutputResumesOffsets(t *testing.T) {
 		},
 	})
 	client := newTestClient(t, server)
-	watch, err := client.Workload.Jobs.WatchOutput(context.Background(), &workspacev1.WatchOutputRequest{StdoutOffset: 5, StderrOffset: 7})
+	watch, err := client.Workload().Jobs().WatchOutput(context.Background(), &workspacev1.WatchOutputRequest{StdoutOffset: 5, StderrOffset: 7})
 	if err != nil {
 		t.Fatalf("WatchOutput: %v", err)
 	}
@@ -409,7 +409,7 @@ func TestWatchOutputRefused(t *testing.T) {
 				},
 			})
 			client := newTestClient(t, server)
-			watch, err := client.Workload.Jobs.WatchOutput(context.Background(), &workspacev1.WatchOutputRequest{})
+			watch, err := client.Workload().Jobs().WatchOutput(context.Background(), &workspacev1.WatchOutputRequest{})
 			if err == nil {
 				if watch.Receive() {
 					t.Fatal("Receive returned a message")
@@ -453,7 +453,7 @@ func TestWatchConstructorsDoNotOpen(t *testing.T) {
 	defer cancel()
 
 	start := time.Now()
-	workloads, err := client.Workload.Jobs.Watch(ctx, &workspacev1.WatchJobsRequest{})
+	workloads, err := client.Workload().Jobs().Watch(ctx, &workspacev1.WatchJobsRequest{})
 	if err != nil {
 		t.Fatalf("WatchJobs: %v after %v", err, time.Since(start))
 	}
@@ -462,7 +462,7 @@ func TestWatchConstructorsDoNotOpen(t *testing.T) {
 	}
 
 	start = time.Now()
-	events, err := client.Workload.WatchEvents(ctx, &workspacev1.WatchEventsRequest{Cursor: "c1"})
+	events, err := client.Workload().WatchEvents(ctx, &workspacev1.WatchEventsRequest{Cursor: "c1"})
 	if err != nil {
 		t.Fatalf("WatchEvents: %v after %v", err, time.Since(start))
 	}
@@ -471,7 +471,7 @@ func TestWatchConstructorsDoNotOpen(t *testing.T) {
 	}
 
 	start = time.Now()
-	output, err := client.Workload.Jobs.WatchOutput(ctx, &workspacev1.WatchOutputRequest{Id: "w1"})
+	output, err := client.Workload().Jobs().WatchOutput(ctx, &workspacev1.WatchOutputRequest{Id: "w1"})
 	if err != nil {
 		t.Fatalf("WatchOutput: %v after %v", err, time.Since(start))
 	}
@@ -502,7 +502,7 @@ func TestWatchOpenErrorOnReceive(t *testing.T) {
 	client := newTestClient(t, server)
 	ctx := context.Background()
 
-	workloads, err := client.Workload.Jobs.Watch(ctx, &workspacev1.WatchJobsRequest{Cursor: "c1"})
+	workloads, err := client.Workload().Jobs().Watch(ctx, &workspacev1.WatchJobsRequest{Cursor: "c1"})
 	if err != nil {
 		t.Fatalf("WatchJobs constructor returned the open error: %v", err)
 	}
@@ -514,7 +514,7 @@ func TestWatchOpenErrorOnReceive(t *testing.T) {
 	}
 	_ = workloads.Close()
 
-	events, err := client.Workload.WatchEvents(ctx, &workspacev1.WatchEventsRequest{Cursor: "c1"})
+	events, err := client.Workload().WatchEvents(ctx, &workspacev1.WatchEventsRequest{Cursor: "c1"})
 	if err != nil {
 		t.Fatalf("WatchEvents constructor returned the open error: %v", err)
 	}
@@ -526,7 +526,7 @@ func TestWatchOpenErrorOnReceive(t *testing.T) {
 	}
 	_ = events.Close()
 
-	output, err := client.Workload.Jobs.WatchOutput(ctx, &workspacev1.WatchOutputRequest{Id: "w1"})
+	output, err := client.Workload().Jobs().WatchOutput(ctx, &workspacev1.WatchOutputRequest{Id: "w1"})
 	if err != nil {
 		t.Fatalf("WatchOutput constructor returned the open error: %v", err)
 	}

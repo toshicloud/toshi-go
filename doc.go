@@ -1,10 +1,10 @@
 // Package toshi is a client for the Toshi Workspace API, toshi.workspace.v1.
 //
-// New returns a Client with one field per service of the API. Workload is
-// written by this module: a job's calls under Workload.Jobs, a sandbox's
-// under Workload.Sandboxes, a service's under Workload.Services, and the
-// calls that span the three on Workload itself. The other fields are the
-// generated Connect clients of their service, from the module
+// New returns a Client with one method per service of the API. Workload is
+// written by this module: a job's calls under Workload().Jobs(), a sandbox's
+// under Workload().Sandboxes(), a service's under Workload().Services(), and
+// the calls that span the three on Workload() itself. The other methods are
+// the generated Connect clients of their service, from the module
 // go.toshicloud.io/api. The client sends its token as a bearer
 // token and fills an empty project and environment from WithScope. It
 // retries reads, and the writes that take a request_key, when the server is
