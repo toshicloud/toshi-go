@@ -80,6 +80,41 @@ token. There is no default project or environment: set them with
 
 Execute needs HTTP/2, which the server offers over https.
 
+## Tokens that change
+
+`WithTokenSource` gives the client a function it calls for the token of
+every request, so a token that is refreshed, for example from a secret
+manager, is used without a new client. It wins over every other token
+option. The client calls it concurrently, so it must be fast: cache the
+token and refresh it outside the call. An error from it fails the call with
+`UNAUTHENTICATED`, and the call is not retried.
+
+<!-- ExampleWithTokenSource -->
+```go
+import (
+	"context"
+	"log"
+	"sync/atomic"
+
+	"go.toshicloud.io/toshi"
+)
+
+var token atomic.Value // Store each new token here, for example from a refresh loop.
+token.Store("first-token")
+client, err := toshi.New(toshi.WithTokenSource(func(context.Context) (string, error) {
+	return token.Load().(string), nil
+}))
+if err != nil {
+	log.Fatal(err)
+}
+_ = client // Use the client as in the other examples.
+```
+
+A token file, from `WithTokenFile` or `TOSHI_TOKEN_FILE`, is read again
+before a request when its modification time or size has changed, so a
+rotated token, such as a Kubernetes projected service account token, is
+picked up without a new client.
+
 ## Interceptors and the User-Agent
 
 `WithInterceptors` adds Connect interceptors to every service client, for

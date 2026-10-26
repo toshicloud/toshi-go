@@ -10,6 +10,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"connectrpc.com/connect"
@@ -100,6 +101,18 @@ func ExampleWithInterceptors() {
 		toshi.WithInterceptors(logCalls),
 		toshi.WithUserAgent("myapp/1.2"),
 	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	_ = client // Use the client as in the other examples.
+}
+
+func ExampleWithTokenSource() {
+	var token atomic.Value // Store each new token here, for example from a refresh loop.
+	token.Store("first-token")
+	client, err := toshi.New(toshi.WithTokenSource(func(context.Context) (string, error) {
+		return token.Load().(string), nil
+	}))
 	if err != nil {
 		log.Fatal(err)
 	}

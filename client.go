@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
+	"time"
 
 	"connectrpc.com/connect"
 
@@ -151,22 +153,92 @@ func New(opts ...Option) (*Client, error) {
 	return client, nil
 }
 
-// resolveToken picks the token by the documented precedence: the option, the
-// option's file, TOSHI_TOKEN, then TOSHI_TOKEN_FILE.
-func resolveToken(cfg *config) (string, error) {
+// resolveToken returns the function that gives each request its token, by
+// the documented precedence: the source, the option, the option's file,
+// TOSHI_TOKEN, then TOSHI_TOKEN_FILE. A token file is read here, so a missing
+// or empty one fails New.
+func resolveToken(cfg *config) (func(context.Context) (string, error), error) {
+	if cfg.tokenSource != nil {
+		return sourceToken(cfg.tokenSource), nil
+	}
 	if token := strings.TrimSpace(cfg.token); token != "" {
-		return token, nil
+		return fixedToken(token), nil
 	}
 	if cfg.tokenFile != "" {
-		return readTokenFile(cfg.tokenFile)
+		return newTokenFile(cfg.tokenFile)
 	}
 	if token := strings.TrimSpace(os.Getenv("TOSHI_TOKEN")); token != "" {
-		return token, nil
+		return fixedToken(token), nil
 	}
 	if path := os.Getenv("TOSHI_TOKEN_FILE"); path != "" {
-		return readTokenFile(path)
+		return newTokenFile(path)
 	}
-	return "", errors.New("toshi: no token: use WithToken or WithTokenFile, or set TOSHI_TOKEN or TOSHI_TOKEN_FILE")
+	return nil, errors.New("toshi: no token: use WithTokenSource, WithToken or WithTokenFile, or set TOSHI_TOKEN or TOSHI_TOKEN_FILE")
+}
+
+// fixedToken returns a token function that always gives token.
+func fixedToken(token string) func(context.Context) (string, error) {
+	return func(context.Context) (string, error) { return token, nil }
+}
+
+// sourceToken returns a token function that asks source, trims its token and
+// refuses an empty one.
+func sourceToken(source func(context.Context) (string, error)) func(context.Context) (string, error) {
+	return func(ctx context.Context) (string, error) {
+		token, err := source(ctx)
+		if err != nil {
+			return "", fmt.Errorf("toshi: token source: %w", err)
+		}
+		token = strings.TrimSpace(token)
+		if token == "" {
+			return "", errors.New("toshi: token source: empty token")
+		}
+		return token, nil
+	}
+}
+
+// tokenFile is a token file the client reads again when its modification
+// time or size changes.
+type tokenFile struct {
+	path string
+
+	mu      sync.Mutex
+	token   string
+	modTime time.Time
+	size    int64
+}
+
+// newTokenFile reads the token file at path and returns its token function.
+func newTokenFile(path string) (func(context.Context) (string, error), error) {
+	f := &tokenFile{path: path, size: -1}
+	if _, err := f.read(); err != nil {
+		return nil, err
+	}
+	return func(context.Context) (string, error) { return f.read() }, nil
+}
+
+// read returns the file's token, reading the file again when it has changed
+// since the last read. It stats the file before reading it, so a change made
+// in between is read again next time. After a failure the next call reads the
+// file again.
+func (f *tokenFile) read() (string, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	info, err := os.Stat(f.path)
+	if err != nil {
+		f.size = -1
+		return "", fmt.Errorf("toshi: read token file %s: %w", f.path, err)
+	}
+	if info.ModTime().Equal(f.modTime) && info.Size() == f.size {
+		return f.token, nil
+	}
+	token, err := readTokenFile(f.path)
+	if err != nil {
+		f.size = -1
+		return "", err
+	}
+	f.token, f.modTime, f.size = token, info.ModTime(), info.Size()
+	return token, nil
 }
 
 // readTokenFile reads a token file, trims its contents and refuses an empty

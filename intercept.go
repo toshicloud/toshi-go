@@ -15,17 +15,25 @@ import (
 // headerClient sets the headers the client owns on every HTTP request: the
 // token as a bearer token and the User-Agent. It sets them on a copy below
 // every interceptor, so no interceptor sees the token. It never sets
-// Toshi-Tenant.
+// Toshi-Tenant. When there is no token it sends nothing and returns a
+// CodeUnauthenticated error, which connect-go passes on with its code.
 type headerClient struct {
 	next      connect.HTTPClient
-	token     string
+	token     func(context.Context) (string, error)
 	userAgent string
 }
 
 func (h headerClient) Do(req *http.Request) (*http.Response, error) {
+	token, err := h.token(req.Context())
+	if err != nil {
+		if req.Body != nil {
+			_ = req.Body.Close()
+		}
+		return nil, connect.NewError(connect.CodeUnauthenticated, err)
+	}
 	out := *req
 	out.Header = req.Header.Clone()
-	out.Header.Set("Authorization", "Bearer "+h.token)
+	out.Header.Set("Authorization", "Bearer "+token)
 	out.Header.Set("User-Agent", h.userAgent)
 	return h.next.Do(&out)
 }
