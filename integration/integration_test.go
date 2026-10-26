@@ -340,6 +340,31 @@ func TestIntegration(t *testing.T) {
 		}
 	})
 
+	t.Run("ListEvents", func(t *testing.T) {
+		page, err := client.Workload.ListEvents(ctx, &workspacev1.ListEventsRequest{
+			WorkloadId: firstID,
+			PageSize:   100,
+		})
+		if err != nil {
+			t.Fatalf("ListEvents: %v", err)
+		}
+		created := false
+		for _, event := range page.GetEvents() {
+			if event.GetWorkloadId() != firstID {
+				t.Fatalf("event for %q, want only %q", event.GetWorkloadId(), firstID)
+			}
+			if event.GetType() == workspacev1.EventType_EVENT_TYPE_WORKLOAD_CREATED {
+				created = true
+			}
+		}
+		if !created {
+			t.Fatalf("events %v, want the created event", page.GetEvents())
+		}
+		if page.GetCursor() == "" {
+			t.Fatal("no cursor after a page of events")
+		}
+	})
+
 	t.Run("WaitJob", func(t *testing.T) {
 		waitCtx, waitCancel := context.WithTimeout(ctx, 4*time.Second)
 		defer waitCancel()

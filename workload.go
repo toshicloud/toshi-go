@@ -51,6 +51,18 @@ func newWorkloadClient(client *Client, svc workspacev1connect.WorkloadServiceCli
 	}
 }
 
+// ListEvents returns a page of the event log from the position the request's
+// page token names. WatchEvents is the live form: with an empty cursor it
+// pages ListEvents, reports each listed event, and then watches from the last
+// page's cursor.
+func (w WorkloadClient) ListEvents(ctx context.Context, req *workspacev1.ListEventsRequest) (*workspacev1.ListEventsResponse, error) {
+	resp, err := w.call.svc.ListEvents(ctx, connect.NewRequest(req))
+	if err != nil {
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
 // WatchEvents starts an event watch. With an empty cursor it pages
 // ListEvents, reports each listed event, and then watches from the last
 // page's cursor.

@@ -27,7 +27,8 @@ jobs, err := client.Workload.Jobs.List(ctx, &workspacev1.ListJobsRequest{})
 `Client` has one field per service. `Workload` is written by this module: a
 job's calls under `Workload.Jobs`, a sandbox's under `Workload.Sandboxes`, a
 service's under `Workload.Services`, and the calls that span the three on
-`Workload` itself (`WatchEvents`, `GetOperation`, `WaitOperation`).
+`Workload` itself (`WatchEvents`, `ListEvents`, `GetOperation`,
+`WaitOperation`).
 `Project`, `Secret`, `Webhook`, `Display`, `Channel`, `Recording`, `Volume`,
 `Artifact` and `ArtifactUpload` are the generated Connect clients of their
 service; `Channel` is `ChannelClient`, which spells out the service's calls.
