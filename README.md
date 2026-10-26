@@ -13,18 +13,24 @@ go.toshicloud.io/toshi.
 
 ```go
 import (
-	"connectrpc.com/connect"
-	"github.com/toshicloud/toshi-api/workspacev1"
 	"go.toshicloud.io/toshi"
+	"github.com/toshicloud/toshi-api/workspacev1"
 )
 
 client, err := toshi.New(toshi.WithScope("default", "production"))
 if err != nil {
 	return err
 }
-projects, err := client.Projects.ListProjects(ctx,
-	connect.NewRequest(&workspacev1.ListProjectsRequest{}))
+jobs, err := client.Workload.Jobs.List(ctx, &workspacev1.ListJobsRequest{})
 ```
+
+`Client` has one field per service. `Workload` is written by this module: a
+job's calls under `Workload.Jobs`, a sandbox's under `Workload.Sandboxes`, a
+service's under `Workload.Services`, and the calls that span the three on
+`Workload` itself (`WatchEvents`, `GetOperation`, `WaitOperation`).
+`Project`, `Secret`, `Webhook`, `Display`, `Channel`, `Recording`, `Volume`,
+`Artifact` and `ArtifactUpload` are the generated Connect clients of their
+service; `Channel` is `ChannelClient`, which spells out the service's calls.
 
 `New` reads the server and token from `TOSHI_SERVER` and `TOSHI_TOKEN`
 (or the file `TOSHI_TOKEN_FILE` names), and an extra CA bundle from
@@ -40,15 +46,21 @@ token. There is no default project or environment: set them with
   other error go back to the caller.
 - `OpenDisplaySession`, the `SecretService` writes and `Execute` are never
   retried.
-- `WaitWorkload` and `WaitOperation` ask again until the workload reaches
-  the state or the operation is done, or the context ends.
-- `WatchWorkloads`, `WatchEvents` and `WatchOutput` resume after a dropped
-  connection from the last cursor or byte offset received. A cursor the
-  server no longer keeps ends the watch with `OUT_OF_RANGE`.
-- `Execute` starts a command and returns a `Process`: write its standard
-  input to `Stdin`, read `Stdout` and `Stderr` at the same time, and
-  `Wait` returns an `*ExitError` for a non-zero exit or a cancelled
-  command, or a `*StreamLostError` with the request key when the
+- `Run` creates a job and follows it: write nothing, read `Stdout` and
+  `Stderr` at the same time, and `Wait` returns nil for exit 0 or a
+  `*JobExitError` for any other end.
+- `Workload.Jobs.Wait`, `Workload.Sandboxes.Wait`, `Workload.Services.Wait`
+  and `Workload.WaitOperation` ask again until the resource reaches the
+  state or the operation is done, or the context ends.
+- The watches, `Workload.Jobs.Watch`, `Workload.Sandboxes.Watch`,
+  `Workload.Services.Watch`, `Workload.WatchEvents` and
+  `Workload.Jobs.WatchOutput`, resume after a dropped connection from the
+  last cursor or byte offset received. A cursor the server no longer keeps
+  ends the watch with `OUT_OF_RANGE`.
+- `Workload.Sandboxes.Execute` starts a command and returns a `Process`:
+  write its standard input to `Stdin`, read `Stdout` and `Stderr` at the
+  same time, and `Wait` returns an `*ExitError` for a non-zero exit or a
+  cancelled command, or a `*StreamLostError` with the request key when the
   connection drops before the exit.
 
 Execute needs HTTP/2, which the server offers over https.
@@ -76,7 +88,7 @@ the code that follows it.
 The module's major version follows the API's: `v1` will serve
 `toshi.workspace.v1`, and a `toshi.workspace.v2` gets a `/v2` module path.
 Until a Toshi release serves the API, the module stays at `v0.x` and
-requires a pinned commit of toshi-api.
+requires a tagged toshi-api.
 
 ## Licence
 

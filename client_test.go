@@ -21,62 +21,74 @@ import (
 	workspacev1connect "github.com/toshicloud/toshi-api/workspacev1/workspacev1connect"
 )
 
-// backend serves the five services from hooks; an unhooked call is
+// backend serves the ten services from hooks; an unhooked call is
 // UNIMPLEMENTED.
 type backend struct {
-	workspacev1connect.UnimplementedWorkspaceServiceHandler
+	workspacev1connect.UnimplementedWorkloadServiceHandler
 	workspacev1connect.UnimplementedProjectServiceHandler
 	workspacev1connect.UnimplementedSecretServiceHandler
 	workspacev1connect.UnimplementedWebhookServiceHandler
 	workspacev1connect.UnimplementedDisplayServiceHandler
+	workspacev1connect.UnimplementedChannelServiceHandler
+	workspacev1connect.UnimplementedRecordingServiceHandler
+	workspacev1connect.UnimplementedVolumeServiceHandler
+	workspacev1connect.UnimplementedArtifactServiceHandler
+	workspacev1connect.UnimplementedArtifactUploadServiceHandler
 
-	createWorkload     func(context.Context, *connect.Request[workspacev1.CreateWorkloadRequest]) (*connect.Response[workspacev1.CreateWorkloadResponse], error)
-	getWorkload        func(context.Context, *connect.Request[workspacev1.GetWorkloadRequest]) (*connect.Response[workspacev1.GetWorkloadResponse], error)
-	listWorkloads      func(context.Context, *connect.Request[workspacev1.ListWorkloadsRequest]) (*connect.Response[workspacev1.ListWorkloadsResponse], error)
-	patchWorkload      func(context.Context, *connect.Request[workspacev1.PatchWorkloadRequest]) (*connect.Response[workspacev1.PatchWorkloadResponse], error)
-	waitWorkload       func(context.Context, *connect.Request[workspacev1.WaitWorkloadRequest]) (*connect.Response[workspacev1.WaitWorkloadResponse], error)
-	waitOperation      func(context.Context, *connect.Request[workspacev1.WaitOperationRequest]) (*connect.Response[workspacev1.WaitOperationResponse], error)
-	listEvents         func(context.Context, *connect.Request[workspacev1.ListEventsRequest]) (*connect.Response[workspacev1.ListEventsResponse], error)
-	listProjects       func(context.Context, *connect.Request[workspacev1.ListProjectsRequest]) (*connect.Response[workspacev1.ListProjectsResponse], error)
-	setSecret          func(context.Context, *connect.Request[workspacev1.SetSecretRequest]) (*connect.Response[workspacev1.SetSecretResponse], error)
-	openDisplaySession func(context.Context, *connect.Request[workspacev1.OpenDisplaySessionRequest]) (*connect.Response[workspacev1.OpenDisplaySessionResponse], error)
-	watchWorkloads     func(context.Context, *connect.Request[workspacev1.WatchWorkloadsRequest], *connect.ServerStream[workspacev1.WatchWorkloadsResponse]) error
-	watchEvents        func(context.Context, *connect.Request[workspacev1.WatchEventsRequest], *connect.ServerStream[workspacev1.WatchEventsResponse]) error
-	watchOutput        func(context.Context, *connect.Request[workspacev1.WatchOutputRequest], *connect.ServerStream[workspacev1.WatchOutputResponse]) error
-	execute            func(context.Context, *connect.BidiStream[workspacev1.ExecuteRequest, workspacev1.ExecuteResponse]) error
+	createJob            func(context.Context, *connect.Request[workspacev1.CreateJobRequest]) (*connect.Response[workspacev1.CreateJobResponse], error)
+	getJob               func(context.Context, *connect.Request[workspacev1.GetJobRequest]) (*connect.Response[workspacev1.GetJobResponse], error)
+	listJobs             func(context.Context, *connect.Request[workspacev1.ListJobsRequest]) (*connect.Response[workspacev1.ListJobsResponse], error)
+	updateJob            func(context.Context, *connect.Request[workspacev1.UpdateJobRequest]) (*connect.Response[workspacev1.UpdateJobResponse], error)
+	waitJob              func(context.Context, *connect.Request[workspacev1.WaitJobRequest]) (*connect.Response[workspacev1.WaitJobResponse], error)
+	waitOperation        func(context.Context, *connect.Request[workspacev1.WaitOperationRequest]) (*connect.Response[workspacev1.WaitOperationResponse], error)
+	listEvents           func(context.Context, *connect.Request[workspacev1.ListEventsRequest]) (*connect.Response[workspacev1.ListEventsResponse], error)
+	listProjects         func(context.Context, *connect.Request[workspacev1.ListProjectsRequest]) (*connect.Response[workspacev1.ListProjectsResponse], error)
+	putSecret            func(context.Context, *connect.Request[workspacev1.PutSecretRequest]) (*connect.Response[workspacev1.PutSecretResponse], error)
+	listWebhookEndpoints func(context.Context, *connect.Request[workspacev1.ListWebhookEndpointsRequest]) (*connect.Response[workspacev1.ListWebhookEndpointsResponse], error)
+	openDisplaySession   func(context.Context, *connect.Request[workspacev1.OpenDisplaySessionRequest]) (*connect.Response[workspacev1.OpenDisplaySessionResponse], error)
+	listChannels         func(context.Context, *connect.Request[workspacev1.ListChannelsRequest]) (*connect.Response[workspacev1.ListChannelsResponse], error)
+	listRecordings       func(context.Context, *connect.Request[workspacev1.ListRecordingsRequest]) (*connect.Response[workspacev1.ListRecordingsResponse], error)
+	listVolumes          func(context.Context, *connect.Request[workspacev1.ListVolumesRequest]) (*connect.Response[workspacev1.ListVolumesResponse], error)
+	listArtifacts        func(context.Context, *connect.Request[workspacev1.ListArtifactsRequest]) (*connect.Response[workspacev1.ListArtifactsResponse], error)
+	reserveUpload        func(context.Context, *connect.Request[workspacev1.ReserveUploadRequest]) (*connect.Response[workspacev1.ReserveUploadResponse], error)
+	watchJobs            func(context.Context, *connect.Request[workspacev1.WatchJobsRequest], *connect.ServerStream[workspacev1.WatchJobsResponse]) error
+	watchEvents          func(context.Context, *connect.Request[workspacev1.WatchEventsRequest], *connect.ServerStream[workspacev1.WatchEventsResponse]) error
+	watchOutput          func(context.Context, *connect.Request[workspacev1.WatchOutputRequest], *connect.ServerStream[workspacev1.WatchOutputResponse]) error
+	watchTelemetry       func(context.Context, *connect.Request[workspacev1.WatchTelemetryRequest], *connect.ServerStream[workspacev1.WatchTelemetryResponse]) error
+	execute              func(context.Context, *connect.BidiStream[workspacev1.ExecuteRequest, workspacev1.ExecuteResponse]) error
 }
 
-func (b *backend) CreateWorkload(ctx context.Context, req *connect.Request[workspacev1.CreateWorkloadRequest]) (*connect.Response[workspacev1.CreateWorkloadResponse], error) {
-	if b.createWorkload != nil {
-		return b.createWorkload(ctx, req)
+func (b *backend) CreateJob(ctx context.Context, req *connect.Request[workspacev1.CreateJobRequest]) (*connect.Response[workspacev1.CreateJobResponse], error) {
+	if b.createJob != nil {
+		return b.createJob(ctx, req)
 	}
 	return nil, unimplemented()
 }
 
-func (b *backend) GetWorkload(ctx context.Context, req *connect.Request[workspacev1.GetWorkloadRequest]) (*connect.Response[workspacev1.GetWorkloadResponse], error) {
-	if b.getWorkload != nil {
-		return b.getWorkload(ctx, req)
+func (b *backend) GetJob(ctx context.Context, req *connect.Request[workspacev1.GetJobRequest]) (*connect.Response[workspacev1.GetJobResponse], error) {
+	if b.getJob != nil {
+		return b.getJob(ctx, req)
 	}
 	return nil, unimplemented()
 }
 
-func (b *backend) ListWorkloads(ctx context.Context, req *connect.Request[workspacev1.ListWorkloadsRequest]) (*connect.Response[workspacev1.ListWorkloadsResponse], error) {
-	if b.listWorkloads != nil {
-		return b.listWorkloads(ctx, req)
+func (b *backend) ListJobs(ctx context.Context, req *connect.Request[workspacev1.ListJobsRequest]) (*connect.Response[workspacev1.ListJobsResponse], error) {
+	if b.listJobs != nil {
+		return b.listJobs(ctx, req)
 	}
 	return nil, unimplemented()
 }
 
-func (b *backend) PatchWorkload(ctx context.Context, req *connect.Request[workspacev1.PatchWorkloadRequest]) (*connect.Response[workspacev1.PatchWorkloadResponse], error) {
-	if b.patchWorkload != nil {
-		return b.patchWorkload(ctx, req)
+func (b *backend) UpdateJob(ctx context.Context, req *connect.Request[workspacev1.UpdateJobRequest]) (*connect.Response[workspacev1.UpdateJobResponse], error) {
+	if b.updateJob != nil {
+		return b.updateJob(ctx, req)
 	}
 	return nil, unimplemented()
 }
 
-func (b *backend) WaitWorkload(ctx context.Context, req *connect.Request[workspacev1.WaitWorkloadRequest]) (*connect.Response[workspacev1.WaitWorkloadResponse], error) {
-	if b.waitWorkload != nil {
-		return b.waitWorkload(ctx, req)
+func (b *backend) WaitJob(ctx context.Context, req *connect.Request[workspacev1.WaitJobRequest]) (*connect.Response[workspacev1.WaitJobResponse], error) {
+	if b.waitJob != nil {
+		return b.waitJob(ctx, req)
 	}
 	return nil, unimplemented()
 }
@@ -102,9 +114,16 @@ func (b *backend) ListProjects(ctx context.Context, req *connect.Request[workspa
 	return nil, unimplemented()
 }
 
-func (b *backend) SetSecret(ctx context.Context, req *connect.Request[workspacev1.SetSecretRequest]) (*connect.Response[workspacev1.SetSecretResponse], error) {
-	if b.setSecret != nil {
-		return b.setSecret(ctx, req)
+func (b *backend) PutSecret(ctx context.Context, req *connect.Request[workspacev1.PutSecretRequest]) (*connect.Response[workspacev1.PutSecretResponse], error) {
+	if b.putSecret != nil {
+		return b.putSecret(ctx, req)
+	}
+	return nil, unimplemented()
+}
+
+func (b *backend) ListWebhookEndpoints(ctx context.Context, req *connect.Request[workspacev1.ListWebhookEndpointsRequest]) (*connect.Response[workspacev1.ListWebhookEndpointsResponse], error) {
+	if b.listWebhookEndpoints != nil {
+		return b.listWebhookEndpoints(ctx, req)
 	}
 	return nil, unimplemented()
 }
@@ -116,9 +135,44 @@ func (b *backend) OpenDisplaySession(ctx context.Context, req *connect.Request[w
 	return nil, unimplemented()
 }
 
-func (b *backend) WatchWorkloads(ctx context.Context, req *connect.Request[workspacev1.WatchWorkloadsRequest], stream *connect.ServerStream[workspacev1.WatchWorkloadsResponse]) error {
-	if b.watchWorkloads != nil {
-		return b.watchWorkloads(ctx, req, stream)
+func (b *backend) ListChannels(ctx context.Context, req *connect.Request[workspacev1.ListChannelsRequest]) (*connect.Response[workspacev1.ListChannelsResponse], error) {
+	if b.listChannels != nil {
+		return b.listChannels(ctx, req)
+	}
+	return nil, unimplemented()
+}
+
+func (b *backend) ListRecordings(ctx context.Context, req *connect.Request[workspacev1.ListRecordingsRequest]) (*connect.Response[workspacev1.ListRecordingsResponse], error) {
+	if b.listRecordings != nil {
+		return b.listRecordings(ctx, req)
+	}
+	return nil, unimplemented()
+}
+
+func (b *backend) ListVolumes(ctx context.Context, req *connect.Request[workspacev1.ListVolumesRequest]) (*connect.Response[workspacev1.ListVolumesResponse], error) {
+	if b.listVolumes != nil {
+		return b.listVolumes(ctx, req)
+	}
+	return nil, unimplemented()
+}
+
+func (b *backend) ListArtifacts(ctx context.Context, req *connect.Request[workspacev1.ListArtifactsRequest]) (*connect.Response[workspacev1.ListArtifactsResponse], error) {
+	if b.listArtifacts != nil {
+		return b.listArtifacts(ctx, req)
+	}
+	return nil, unimplemented()
+}
+
+func (b *backend) ReserveUpload(ctx context.Context, req *connect.Request[workspacev1.ReserveUploadRequest]) (*connect.Response[workspacev1.ReserveUploadResponse], error) {
+	if b.reserveUpload != nil {
+		return b.reserveUpload(ctx, req)
+	}
+	return nil, unimplemented()
+}
+
+func (b *backend) WatchJobs(ctx context.Context, req *connect.Request[workspacev1.WatchJobsRequest], stream *connect.ServerStream[workspacev1.WatchJobsResponse]) error {
+	if b.watchJobs != nil {
+		return b.watchJobs(ctx, req, stream)
 	}
 	return unimplemented()
 }
@@ -137,6 +191,13 @@ func (b *backend) WatchOutput(ctx context.Context, req *connect.Request[workspac
 	return unimplemented()
 }
 
+func (b *backend) WatchTelemetry(ctx context.Context, req *connect.Request[workspacev1.WatchTelemetryRequest], stream *connect.ServerStream[workspacev1.WatchTelemetryResponse]) error {
+	if b.watchTelemetry != nil {
+		return b.watchTelemetry(ctx, req, stream)
+	}
+	return unimplemented()
+}
+
 func (b *backend) Execute(ctx context.Context, stream *connect.BidiStream[workspacev1.ExecuteRequest, workspacev1.ExecuteResponse]) error {
 	if b.execute != nil {
 		return b.execute(ctx, stream)
@@ -148,7 +209,7 @@ func unimplemented() error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("not implemented in this test"))
 }
 
-// testServer mounts the five services for one backend over TLS with HTTP/2.
+// testServer mounts the ten services for one backend over TLS with HTTP/2.
 type testServer struct {
 	*httptest.Server
 	backend *backend
@@ -157,16 +218,21 @@ type testServer struct {
 func newTestServer(t *testing.T, b *backend) *testServer {
 	t.Helper()
 	mux := http.NewServeMux()
-	path, handler := workspacev1connect.NewWorkspaceServiceHandler(b)
-	mux.Handle(path, handler)
-	path, handler = workspacev1connect.NewProjectServiceHandler(b)
-	mux.Handle(path, handler)
-	path, handler = workspacev1connect.NewSecretServiceHandler(b)
-	mux.Handle(path, handler)
-	path, handler = workspacev1connect.NewWebhookServiceHandler(b)
-	mux.Handle(path, handler)
-	path, handler = workspacev1connect.NewDisplayServiceHandler(b)
-	mux.Handle(path, handler)
+	for _, mount := range []func() (string, http.Handler){
+		func() (string, http.Handler) { return workspacev1connect.NewWorkloadServiceHandler(b) },
+		func() (string, http.Handler) { return workspacev1connect.NewProjectServiceHandler(b) },
+		func() (string, http.Handler) { return workspacev1connect.NewSecretServiceHandler(b) },
+		func() (string, http.Handler) { return workspacev1connect.NewWebhookServiceHandler(b) },
+		func() (string, http.Handler) { return workspacev1connect.NewDisplayServiceHandler(b) },
+		func() (string, http.Handler) { return workspacev1connect.NewChannelServiceHandler(b) },
+		func() (string, http.Handler) { return workspacev1connect.NewRecordingServiceHandler(b) },
+		func() (string, http.Handler) { return workspacev1connect.NewVolumeServiceHandler(b) },
+		func() (string, http.Handler) { return workspacev1connect.NewArtifactServiceHandler(b) },
+		func() (string, http.Handler) { return workspacev1connect.NewArtifactUploadServiceHandler(b) },
+	} {
+		path, handler := mount()
+		mux.Handle(path, handler)
+	}
 	server := httptest.NewUnstartedServer(mux)
 	server.EnableHTTP2 = true
 	server.StartTLS()
@@ -218,7 +284,7 @@ func TestTokenAndServerPrecedence(t *testing.T) {
 
 	call := func(client *Client) {
 		t.Helper()
-		if _, err := client.Projects.ListProjects(context.Background(), connect.NewRequest(&workspacev1.ListProjectsRequest{})); err != nil {
+		if _, err := client.Project.ListProjects(context.Background(), connect.NewRequest(&workspacev1.ListProjectsRequest{})); err != nil {
 			t.Fatalf("ListProjects: %v", err)
 		}
 	}
@@ -327,7 +393,7 @@ func TestCAFileTrustsServer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
-	if _, err := client.Projects.ListProjects(context.Background(), connect.NewRequest(&workspacev1.ListProjectsRequest{})); err != nil {
+	if _, err := client.Project.ListProjects(context.Background(), connect.NewRequest(&workspacev1.ListProjectsRequest{})); err != nil {
 		t.Fatalf("ListProjects over the CA file: %v", err)
 	}
 
@@ -370,10 +436,10 @@ func TestBearerOnUnaryAndStreams(t *testing.T) {
 	})
 	client := newTestClient(t, server)
 	ctx := context.Background()
-	if _, err := client.Projects.ListProjects(ctx, connect.NewRequest(&workspacev1.ListProjectsRequest{})); err != nil {
+	if _, err := client.Project.ListProjects(ctx, connect.NewRequest(&workspacev1.ListProjectsRequest{})); err != nil {
 		t.Fatalf("ListProjects: %v", err)
 	}
-	watch, err := client.WatchOutput(ctx, &workspacev1.WatchOutputRequest{})
+	watch, err := client.Workload.Jobs.WatchOutput(ctx, &workspacev1.WatchOutputRequest{})
 	if err != nil {
 		t.Fatalf("WatchOutput: %v", err)
 	}
@@ -387,24 +453,105 @@ func TestBearerOnUnaryAndStreams(t *testing.T) {
 	}
 }
 
-func TestScopeFilling(t *testing.T) {
-	var created *workspacev1.CreateWorkloadRequest
-	var secret *workspacev1.SetSecretRequest
+// TestClientFieldsCallTheirServices proves each field of Client reaches its
+// own service.
+func TestClientFieldsCallTheirServices(t *testing.T) {
+	var seen atomic.Int32
+	count := func() { seen.Add(1) }
 	server := newTestServer(t, &backend{
-		createWorkload: func(_ context.Context, req *connect.Request[workspacev1.CreateWorkloadRequest]) (*connect.Response[workspacev1.CreateWorkloadResponse], error) {
-			created = proto.Clone(req.Msg).(*workspacev1.CreateWorkloadRequest)
-			return connect.NewResponse(&workspacev1.CreateWorkloadResponse{}), nil
+		createJob: func(context.Context, *connect.Request[workspacev1.CreateJobRequest]) (*connect.Response[workspacev1.CreateJobResponse], error) {
+			count()
+			return connect.NewResponse(&workspacev1.CreateJobResponse{Job: &workspacev1.Job{Id: "job-1"}}), nil
 		},
-		setSecret: func(_ context.Context, req *connect.Request[workspacev1.SetSecretRequest]) (*connect.Response[workspacev1.SetSecretResponse], error) {
-			secret = proto.Clone(req.Msg).(*workspacev1.SetSecretRequest)
-			return connect.NewResponse(&workspacev1.SetSecretResponse{}), nil
+		listProjects: func(context.Context, *connect.Request[workspacev1.ListProjectsRequest]) (*connect.Response[workspacev1.ListProjectsResponse], error) {
+			count()
+			return connect.NewResponse(&workspacev1.ListProjectsResponse{}), nil
+		},
+		putSecret: func(context.Context, *connect.Request[workspacev1.PutSecretRequest]) (*connect.Response[workspacev1.PutSecretResponse], error) {
+			count()
+			return connect.NewResponse(&workspacev1.PutSecretResponse{}), nil
+		},
+		listWebhookEndpoints: func(context.Context, *connect.Request[workspacev1.ListWebhookEndpointsRequest]) (*connect.Response[workspacev1.ListWebhookEndpointsResponse], error) {
+			count()
+			return connect.NewResponse(&workspacev1.ListWebhookEndpointsResponse{}), nil
+		},
+		openDisplaySession: func(context.Context, *connect.Request[workspacev1.OpenDisplaySessionRequest]) (*connect.Response[workspacev1.OpenDisplaySessionResponse], error) {
+			count()
+			return connect.NewResponse(&workspacev1.OpenDisplaySessionResponse{}), nil
+		},
+		listChannels: func(context.Context, *connect.Request[workspacev1.ListChannelsRequest]) (*connect.Response[workspacev1.ListChannelsResponse], error) {
+			count()
+			return connect.NewResponse(&workspacev1.ListChannelsResponse{}), nil
+		},
+		listRecordings: func(context.Context, *connect.Request[workspacev1.ListRecordingsRequest]) (*connect.Response[workspacev1.ListRecordingsResponse], error) {
+			count()
+			return connect.NewResponse(&workspacev1.ListRecordingsResponse{}), nil
+		},
+		listVolumes: func(context.Context, *connect.Request[workspacev1.ListVolumesRequest]) (*connect.Response[workspacev1.ListVolumesResponse], error) {
+			count()
+			return connect.NewResponse(&workspacev1.ListVolumesResponse{}), nil
+		},
+		listArtifacts: func(context.Context, *connect.Request[workspacev1.ListArtifactsRequest]) (*connect.Response[workspacev1.ListArtifactsResponse], error) {
+			count()
+			return connect.NewResponse(&workspacev1.ListArtifactsResponse{}), nil
+		},
+		reserveUpload: func(context.Context, *connect.Request[workspacev1.ReserveUploadRequest]) (*connect.Response[workspacev1.ReserveUploadResponse], error) {
+			count()
+			return connect.NewResponse(&workspacev1.ReserveUploadResponse{}), nil
+		},
+	})
+	client := newTestClient(t, server)
+	ctx := context.Background()
+
+	check := func(name string, err error) {
+		t.Helper()
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+	}
+	_, err := client.Workload.Jobs.Create(ctx, &workspacev1.CreateJobRequest{})
+	check("Workload.Jobs", err)
+	_, err = client.Project.ListProjects(ctx, connect.NewRequest(&workspacev1.ListProjectsRequest{}))
+	check("Project", err)
+	_, err = client.Secret.PutSecret(ctx, connect.NewRequest(&workspacev1.PutSecretRequest{Name: "k", Value: []byte("v")}))
+	check("Secret", err)
+	_, err = client.Webhook.ListWebhookEndpoints(ctx, connect.NewRequest(&workspacev1.ListWebhookEndpointsRequest{}))
+	check("Webhook", err)
+	_, err = client.Display.OpenDisplaySession(ctx, connect.NewRequest(&workspacev1.OpenDisplaySessionRequest{}))
+	check("Display", err)
+	_, err = client.Channel.ListChannels(ctx, connect.NewRequest(&workspacev1.ListChannelsRequest{JobId: "job-1"}))
+	check("Channel", err)
+	_, err = client.Recording.ListRecordings(ctx, connect.NewRequest(&workspacev1.ListRecordingsRequest{WorkloadId: "job-1"}))
+	check("Recording", err)
+	_, err = client.Volume.ListVolumes(ctx, connect.NewRequest(&workspacev1.ListVolumesRequest{}))
+	check("Volume", err)
+	_, err = client.Artifact.ListArtifacts(ctx, connect.NewRequest(&workspacev1.ListArtifactsRequest{WorkloadId: "job-1"}))
+	check("Artifact", err)
+	_, err = client.ArtifactUpload.ReserveUpload(ctx, connect.NewRequest(&workspacev1.ReserveUploadRequest{}))
+	check("ArtifactUpload", err)
+	if seen.Load() != 10 {
+		t.Fatalf("%d services answered, want 10", seen.Load())
+	}
+}
+
+func TestScopeFilling(t *testing.T) {
+	var created *workspacev1.CreateJobRequest
+	var secret *workspacev1.PutSecretRequest
+	server := newTestServer(t, &backend{
+		createJob: func(_ context.Context, req *connect.Request[workspacev1.CreateJobRequest]) (*connect.Response[workspacev1.CreateJobResponse], error) {
+			created = proto.Clone(req.Msg).(*workspacev1.CreateJobRequest)
+			return connect.NewResponse(&workspacev1.CreateJobResponse{}), nil
+		},
+		putSecret: func(_ context.Context, req *connect.Request[workspacev1.PutSecretRequest]) (*connect.Response[workspacev1.PutSecretResponse], error) {
+			secret = proto.Clone(req.Msg).(*workspacev1.PutSecretRequest)
+			return connect.NewResponse(&workspacev1.PutSecretResponse{}), nil
 		},
 	})
 	ctx := context.Background()
 
 	t.Run("workload", func(t *testing.T) {
 		client := newTestClient(t, server, WithScope("proj", "env"))
-		if _, err := client.Workspace.CreateWorkload(ctx, connect.NewRequest(&workspacev1.CreateWorkloadRequest{})); err != nil {
+		if _, err := client.Workload.Jobs.Create(ctx, &workspacev1.CreateJobRequest{}); err != nil {
 			t.Fatal(err)
 		}
 		if created.GetProject() != "proj" || created.GetEnvironment() != "env" {
@@ -414,7 +561,7 @@ func TestScopeFilling(t *testing.T) {
 
 	t.Run("set values stay", func(t *testing.T) {
 		client := newTestClient(t, server, WithScope("proj", "env"))
-		if _, err := client.Workspace.CreateWorkload(ctx, connect.NewRequest(&workspacev1.CreateWorkloadRequest{Project: "p2", Environment: "e2"})); err != nil {
+		if _, err := client.Workload.Jobs.Create(ctx, &workspacev1.CreateJobRequest{Project: "p2", Environment: "e2"}); err != nil {
 			t.Fatal(err)
 		}
 		if created.GetProject() != "p2" || created.GetEnvironment() != "e2" {
@@ -424,7 +571,7 @@ func TestScopeFilling(t *testing.T) {
 
 	t.Run("no scope fills nothing", func(t *testing.T) {
 		client := newTestClient(t, server)
-		if _, err := client.Workspace.CreateWorkload(ctx, connect.NewRequest(&workspacev1.CreateWorkloadRequest{})); err != nil {
+		if _, err := client.Workload.Jobs.Create(ctx, &workspacev1.CreateJobRequest{}); err != nil {
 			t.Fatal(err)
 		}
 		if created.GetProject() != "" || created.GetEnvironment() != "" {
@@ -434,7 +581,7 @@ func TestScopeFilling(t *testing.T) {
 
 	t.Run("shared secret keeps environment empty", func(t *testing.T) {
 		client := newTestClient(t, server, WithScope("proj", "env"))
-		if _, err := client.Secrets.SetSecret(ctx, connect.NewRequest(&workspacev1.SetSecretRequest{Shared: true, Name: "k", Value: []byte("v")})); err != nil {
+		if _, err := client.Secret.PutSecret(ctx, connect.NewRequest(&workspacev1.PutSecretRequest{Shared: true, Name: "k", Value: []byte("v")})); err != nil {
 			t.Fatal(err)
 		}
 		if secret.GetProject() != "proj" || secret.GetEnvironment() != "" {
@@ -444,7 +591,7 @@ func TestScopeFilling(t *testing.T) {
 
 	t.Run("environment secret", func(t *testing.T) {
 		client := newTestClient(t, server, WithScope("proj", "env"))
-		if _, err := client.Secrets.SetSecret(ctx, connect.NewRequest(&workspacev1.SetSecretRequest{Name: "k", Value: []byte("v")})); err != nil {
+		if _, err := client.Secret.PutSecret(ctx, connect.NewRequest(&workspacev1.PutSecretRequest{Name: "k", Value: []byte("v")})); err != nil {
 			t.Fatal(err)
 		}
 		if secret.GetEnvironment() != "env" {
@@ -454,7 +601,7 @@ func TestScopeFilling(t *testing.T) {
 
 	t.Run("both set pass through", func(t *testing.T) {
 		client := newTestClient(t, server, WithScope("proj", "env"))
-		if _, err := client.Secrets.SetSecret(ctx, connect.NewRequest(&workspacev1.SetSecretRequest{Shared: true, Environment: "e3", Name: "k", Value: []byte("v")})); err != nil {
+		if _, err := client.Secret.PutSecret(ctx, connect.NewRequest(&workspacev1.PutSecretRequest{Shared: true, Environment: "e3", Name: "k", Value: []byte("v")})); err != nil {
 			t.Fatal(err)
 		}
 		if secret.GetEnvironment() != "e3" {
@@ -466,10 +613,15 @@ func TestScopeFilling(t *testing.T) {
 func TestRetryMapCoversEveryProcedure(t *testing.T) {
 	files := []protoreflect.FileDescriptor{
 		workspacev1.File_toshi_workspace_v1_workspace_proto,
+		workspacev1.File_toshi_workspace_v1_workloads_proto,
 		workspacev1.File_toshi_workspace_v1_secrets_proto,
 		workspacev1.File_toshi_workspace_v1_projects_proto,
 		workspacev1.File_toshi_workspace_v1_webhook_proto,
 		workspacev1.File_toshi_workspace_v1_display_proto,
+		workspacev1.File_toshi_workspace_v1_channels_proto,
+		workspacev1.File_toshi_workspace_v1_recordings_proto,
+		workspacev1.File_toshi_workspace_v1_volumes_proto,
+		workspacev1.File_toshi_workspace_v1_artifacts_proto,
 	}
 	seen := 0
 	for _, file := range files {
@@ -486,26 +638,26 @@ func TestRetryMapCoversEveryProcedure(t *testing.T) {
 			}
 		}
 	}
-	if seen != 65 {
-		t.Errorf("checked %d procedures, want 65", seen)
+	if seen != 105 {
+		t.Errorf("checked %d procedures, want 105", seen)
 	}
 }
 
 func TestReadRetriedOnUnavailable(t *testing.T) {
 	var calls atomic.Int32
-	server := newTestServer(t, &backend{getWorkload: func(_ context.Context, _ *connect.Request[workspacev1.GetWorkloadRequest]) (*connect.Response[workspacev1.GetWorkloadResponse], error) {
+	server := newTestServer(t, &backend{getJob: func(_ context.Context, _ *connect.Request[workspacev1.GetJobRequest]) (*connect.Response[workspacev1.GetJobResponse], error) {
 		if calls.Add(1) < 3 {
 			return nil, connect.NewError(connect.CodeUnavailable, errors.New("down"))
 		}
-		return connect.NewResponse(&workspacev1.GetWorkloadResponse{Workload: &workspacev1.Workload{Id: "w1"}}), nil
+		return connect.NewResponse(&workspacev1.GetJobResponse{Job: &workspacev1.Job{Id: "job-1"}}), nil
 	}})
 	client := newTestClient(t, server)
-	resp, err := client.Workspace.GetWorkload(context.Background(), connect.NewRequest(&workspacev1.GetWorkloadRequest{}))
+	resp, err := client.Workload.Jobs.Get(context.Background(), &workspacev1.GetJobRequest{})
 	if err != nil {
-		t.Fatalf("GetWorkload: %v", err)
+		t.Fatalf("GetJob: %v", err)
 	}
-	if resp.Msg.GetWorkload().GetId() != "w1" || calls.Load() != 3 {
-		t.Fatalf("workload %q after %d calls", resp.Msg.GetWorkload().GetId(), calls.Load())
+	if resp.GetJob().GetId() != "job-1" || calls.Load() != 3 {
+		t.Fatalf("job %q after %d calls", resp.GetJob().GetId(), calls.Load())
 	}
 }
 
@@ -519,12 +671,12 @@ func TestErrorsAreNotRetried(t *testing.T) {
 	} {
 		t.Run(code.String(), func(t *testing.T) {
 			var calls atomic.Int32
-			server := newTestServer(t, &backend{getWorkload: func(context.Context, *connect.Request[workspacev1.GetWorkloadRequest]) (*connect.Response[workspacev1.GetWorkloadResponse], error) {
+			server := newTestServer(t, &backend{getJob: func(context.Context, *connect.Request[workspacev1.GetJobRequest]) (*connect.Response[workspacev1.GetJobResponse], error) {
 				calls.Add(1)
 				return nil, connect.NewError(code, errors.New("refused"))
 			}})
 			client := newTestClient(t, server)
-			_, err := client.Workspace.GetWorkload(context.Background(), connect.NewRequest(&workspacev1.GetWorkloadRequest{}))
+			_, err := client.Workload.Jobs.Get(context.Background(), &workspacev1.GetJobRequest{})
 			if connect.CodeOf(err) != code || calls.Load() != 1 {
 				t.Fatalf("code %v after %d calls", connect.CodeOf(err), calls.Load())
 			}
@@ -539,17 +691,17 @@ func TestNoneClassIsNotRetried(t *testing.T) {
 			displays.Add(1)
 			return nil, connect.NewError(connect.CodeUnavailable, errors.New("down"))
 		},
-		setSecret: func(context.Context, *connect.Request[workspacev1.SetSecretRequest]) (*connect.Response[workspacev1.SetSecretResponse], error) {
+		putSecret: func(context.Context, *connect.Request[workspacev1.PutSecretRequest]) (*connect.Response[workspacev1.PutSecretResponse], error) {
 			secrets.Add(1)
 			return nil, connect.NewError(connect.CodeUnavailable, errors.New("down"))
 		},
 	})
 	client := newTestClient(t, server, WithScope("proj", "env"))
-	if _, err := client.Displays.OpenDisplaySession(context.Background(), connect.NewRequest(&workspacev1.OpenDisplaySessionRequest{})); connect.CodeOf(err) != connect.CodeUnavailable {
+	if _, err := client.Display.OpenDisplaySession(context.Background(), connect.NewRequest(&workspacev1.OpenDisplaySessionRequest{})); connect.CodeOf(err) != connect.CodeUnavailable {
 		t.Fatalf("open display: %v", err)
 	}
-	if _, err := client.Secrets.SetSecret(context.Background(), connect.NewRequest(&workspacev1.SetSecretRequest{Name: "k", Value: []byte("v")})); connect.CodeOf(err) != connect.CodeUnavailable {
-		t.Fatalf("set secret: %v", err)
+	if _, err := client.Secret.PutSecret(context.Background(), connect.NewRequest(&workspacev1.PutSecretRequest{Name: "k", Value: []byte("v")})); connect.CodeOf(err) != connect.CodeUnavailable {
+		t.Fatalf("put secret: %v", err)
 	}
 	if displays.Load() != 1 || secrets.Load() != 1 {
 		t.Fatalf("calls display=%d secret=%d, want one each", displays.Load(), secrets.Load())
@@ -560,25 +712,25 @@ func TestKeyedWriteFillsAndKeepsKey(t *testing.T) {
 	var keys []string
 	var calls atomic.Int32
 	server := newTestServer(t, &backend{
-		createWorkload: func(_ context.Context, req *connect.Request[workspacev1.CreateWorkloadRequest]) (*connect.Response[workspacev1.CreateWorkloadResponse], error) {
+		createJob: func(_ context.Context, req *connect.Request[workspacev1.CreateJobRequest]) (*connect.Response[workspacev1.CreateJobResponse], error) {
 			keys = append(keys, req.Msg.GetRequestKey())
 			if calls.Add(1) == 1 {
 				return nil, connect.NewError(connect.CodeUnavailable, errors.New("down"))
 			}
-			return connect.NewResponse(&workspacev1.CreateWorkloadResponse{}), nil
+			return connect.NewResponse(&workspacev1.CreateJobResponse{}), nil
 		},
-		patchWorkload: func(_ context.Context, req *connect.Request[workspacev1.PatchWorkloadRequest]) (*connect.Response[workspacev1.PatchWorkloadResponse], error) {
+		updateJob: func(_ context.Context, req *connect.Request[workspacev1.UpdateJobRequest]) (*connect.Response[workspacev1.UpdateJobResponse], error) {
 			keys = append(keys, req.Msg.GetRequestKey())
 			if calls.Add(1) == 3 {
 				return nil, connect.NewError(connect.CodeUnavailable, errors.New("down"))
 			}
-			return connect.NewResponse(&workspacev1.PatchWorkloadResponse{}), nil
+			return connect.NewResponse(&workspacev1.UpdateJobResponse{}), nil
 		},
 	})
 	client := newTestClient(t, server, WithScope("proj", "env"))
-	create := &workspacev1.CreateWorkloadRequest{}
-	if _, err := client.Workspace.CreateWorkload(context.Background(), connect.NewRequest(create)); err != nil {
-		t.Fatalf("CreateWorkload: %v", err)
+	create := &workspacev1.CreateJobRequest{}
+	if _, err := client.Workload.Jobs.Create(context.Background(), create); err != nil {
+		t.Fatalf("CreateJob: %v", err)
 	}
 	if len(keys) != 2 || keys[0] == "" || keys[0] != keys[1] {
 		t.Fatalf("keys %v", keys)
@@ -592,62 +744,65 @@ func TestKeyedWriteFillsAndKeepsKey(t *testing.T) {
 
 	keys = nil
 	calls.Store(2)
-	patch := &workspacev1.PatchWorkloadRequest{RequestKey: "given-key"}
-	if _, err := client.Workspace.PatchWorkload(context.Background(), connect.NewRequest(patch)); err != nil {
-		t.Fatalf("PatchWorkload: %v", err)
+	update := &workspacev1.UpdateJobRequest{RequestKey: "given-key"}
+	if _, err := client.Workload.Jobs.Update(context.Background(), update); err != nil {
+		t.Fatalf("UpdateJob: %v", err)
 	}
-	if len(keys) != 2 || keys[0] != "given-key" || keys[1] != "given-key" || patch.GetRequestKey() != "given-key" {
-		t.Fatalf("keys %v, request %q", keys, patch.GetRequestKey())
+	if len(keys) != 2 || keys[0] != "given-key" || keys[1] != "given-key" || update.GetRequestKey() != "given-key" {
+		t.Fatalf("keys %v, request %q", keys, update.GetRequestKey())
 	}
 }
 
 func TestBackoffStopsOnContextEnd(t *testing.T) {
 	var calls atomic.Int32
-	server := newTestServer(t, &backend{getWorkload: func(context.Context, *connect.Request[workspacev1.GetWorkloadRequest]) (*connect.Response[workspacev1.GetWorkloadResponse], error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	server := newTestServer(t, &backend{getJob: func(context.Context, *connect.Request[workspacev1.GetJobRequest]) (*connect.Response[workspacev1.GetJobResponse], error) {
 		calls.Add(1)
+		// The caller gives up during the first try: the retry's backoff
+		// would wait an hour, so the retry answers with the context's error.
+		cancel()
 		return nil, connect.NewError(connect.CodeUnavailable, errors.New("down"))
 	}})
 	client := newTestClient(t, server, WithRetryPolicy(RetryPolicy{MaxAttempts: 5, InitialBackoff: time.Hour, MaxBackoff: time.Hour}))
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
-	defer cancel()
-	_, err := client.Workspace.GetWorkload(ctx, connect.NewRequest(&workspacev1.GetWorkloadRequest{}))
-	if connect.CodeOf(err) != connect.CodeDeadlineExceeded {
-		t.Fatalf("err %v, want deadline exceeded", err)
+	_, err := client.Workload.Jobs.Get(ctx, &workspacev1.GetJobRequest{})
+	if connect.CodeOf(err) != connect.CodeCanceled {
+		t.Fatalf("err %v, want canceled", err)
 	}
 	if calls.Load() != 1 {
 		t.Fatalf("%d calls, want 1", calls.Load())
 	}
 }
 
-func TestWaitWorkloadAsksAgain(t *testing.T) {
+func TestWaitJobAsksAgain(t *testing.T) {
 	var calls atomic.Int32
-	server := newTestServer(t, &backend{waitWorkload: func(context.Context, *connect.Request[workspacev1.WaitWorkloadRequest]) (*connect.Response[workspacev1.WaitWorkloadResponse], error) {
+	server := newTestServer(t, &backend{waitJob: func(context.Context, *connect.Request[workspacev1.WaitJobRequest]) (*connect.Response[workspacev1.WaitJobResponse], error) {
 		if calls.Add(1) < 3 {
-			return connect.NewResponse(&workspacev1.WaitWorkloadResponse{Reached: false}), nil
+			return connect.NewResponse(&workspacev1.WaitJobResponse{Reached: false}), nil
 		}
-		return connect.NewResponse(&workspacev1.WaitWorkloadResponse{Reached: true, Workload: &workspacev1.Workload{Id: "w1"}}), nil
+		return connect.NewResponse(&workspacev1.WaitJobResponse{Reached: true, Job: &workspacev1.Job{Id: "job-1"}}), nil
 	}})
 	client := newTestClient(t, server)
-	resp, err := client.WaitWorkload(context.Background(), &workspacev1.WaitWorkloadRequest{})
+	resp, err := client.Workload.Jobs.Wait(context.Background(), &workspacev1.WaitJobRequest{})
 	if err != nil {
-		t.Fatalf("WaitWorkload: %v", err)
+		t.Fatalf("WaitJob: %v", err)
 	}
-	if resp.GetWorkload().GetId() != "w1" || calls.Load() != 3 {
-		t.Fatalf("workload %q after %d calls", resp.GetWorkload().GetId(), calls.Load())
+	if resp.GetJob().GetId() != "job-1" || calls.Load() != 3 {
+		t.Fatalf("job %q after %d calls", resp.GetJob().GetId(), calls.Load())
 	}
 }
 
-func TestWaitWorkloadStopsOnContext(t *testing.T) {
+func TestWaitJobStopsOnContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	var calls atomic.Int32
-	server := newTestServer(t, &backend{waitWorkload: func(context.Context, *connect.Request[workspacev1.WaitWorkloadRequest]) (*connect.Response[workspacev1.WaitWorkloadResponse], error) {
+	server := newTestServer(t, &backend{waitJob: func(context.Context, *connect.Request[workspacev1.WaitJobRequest]) (*connect.Response[workspacev1.WaitJobResponse], error) {
 		if calls.Add(1) == 3 {
 			cancel()
 		}
-		return connect.NewResponse(&workspacev1.WaitWorkloadResponse{Reached: false}), nil
+		return connect.NewResponse(&workspacev1.WaitJobResponse{Reached: false}), nil
 	}})
 	client := newTestClient(t, server)
-	_, err := client.WaitWorkload(ctx, &workspacev1.WaitWorkloadRequest{})
+	_, err := client.Workload.Jobs.Wait(ctx, &workspacev1.WaitJobRequest{})
 	if connect.CodeOf(err) != connect.CodeCanceled {
 		t.Fatalf("err %v, want canceled", err)
 	}
@@ -662,7 +817,7 @@ func TestWaitOperationAsksAgain(t *testing.T) {
 		return connect.NewResponse(&workspacev1.WaitOperationResponse{Operation: &workspacev1.Operation{Id: "op1", Done: true}}), nil
 	}})
 	client := newTestClient(t, server)
-	op, err := client.WaitOperation(context.Background(), &workspacev1.WaitOperationRequest{})
+	op, err := client.Workload.WaitOperation(context.Background(), &workspacev1.WaitOperationRequest{})
 	if err != nil {
 		t.Fatalf("WaitOperation: %v", err)
 	}

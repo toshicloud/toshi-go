@@ -15,7 +15,7 @@ import (
 // offsets count what the caller received, so a reconnection continues where
 // the last message stopped.
 type OutputWatch struct {
-	client *Client
+	call   workloadCall
 	ctx    context.Context
 	cancel context.CancelFunc
 	req    *workspacev1.WatchOutputRequest
@@ -35,13 +35,13 @@ type OutputWatch struct {
 // opens on the first Receive, and an error opening it is returned by Err. A
 // job whose output the server no longer holds ends it with
 // FAILED_PRECONDITION; a refused offset ends it with OUT_OF_RANGE.
-func (c *Client) WatchOutput(ctx context.Context, req *workspacev1.WatchOutputRequest) (*OutputWatch, error) {
+func (j JobsClient) WatchOutput(ctx context.Context, req *workspacev1.WatchOutputRequest) (*OutputWatch, error) {
 	if req == nil {
 		req = &workspacev1.WatchOutputRequest{}
 	}
 	watchCtx, cancel := context.WithCancel(ctx)
 	w := &OutputWatch{
-		client: c,
+		call:   j.call,
 		ctx:    watchCtx,
 		cancel: cancel,
 		req:    proto.Clone(req).(*workspacev1.WatchOutputRequest),
@@ -56,7 +56,7 @@ func (w *OutputWatch) open() error {
 	w.req.StdoutOffset = w.stdout
 	w.req.StderrOffset = w.stderr
 	for {
-		stream, err := w.client.Workspace.WatchOutput(w.ctx, connect.NewRequest(w.req))
+		stream, err := w.call.svc.WatchOutput(w.ctx, connect.NewRequest(w.req))
 		if err == nil {
 			w.mu.Lock()
 			w.stream = stream
@@ -75,10 +75,10 @@ func (w *OutputWatch) retry(cause error) error {
 	if !retryable(cause) {
 		return cause
 	}
-	if w.attempt >= w.client.maxReconnects() {
+	if w.attempt >= w.call.client.maxReconnects() {
 		return cause
 	}
-	if err := sleepBackoff(w.ctx, w.client.retry, w.attempt); err != nil {
+	if err := sleepBackoff(w.ctx, w.call.client.retry, w.attempt); err != nil {
 		return err
 	}
 	w.attempt++

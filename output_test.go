@@ -28,7 +28,7 @@ func TestWatchOutputEndReleasesStream(t *testing.T) {
 	client := newTestClient(t, server)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	watch, err := client.WatchOutput(ctx, &workspacev1.WatchOutputRequest{Id: "w1"})
+	watch, err := client.Workload.Jobs.WatchOutput(ctx, &workspacev1.WatchOutputRequest{Id: "w1"})
 	if err != nil {
 		t.Fatalf("WatchOutput: %v", err)
 	}

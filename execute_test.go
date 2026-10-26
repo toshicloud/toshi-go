@@ -79,7 +79,7 @@ func TestExecuteEchoProcess(t *testing.T) {
 		},
 	})
 	client := newTestClient(t, server, WithScope("proj", "env"))
-	p, err := client.Execute(context.Background(), &workspacev1.ExecuteStart{WorkloadId: "w1"})
+	p, err := client.Workload.Sandboxes.Execute(context.Background(), &workspacev1.ExecuteStart{SandboxId: "w1"})
 	if err != nil {
 		t.Fatalf("Execute: %v", err)
 	}
@@ -161,7 +161,7 @@ func TestExecuteStdinChunks(t *testing.T) {
 		},
 	})
 	client := newTestClient(t, server)
-	p, err := client.Execute(context.Background(), &workspacev1.ExecuteStart{WorkloadId: "w1"})
+	p, err := client.Workload.Sandboxes.Execute(context.Background(), &workspacev1.ExecuteStart{SandboxId: "w1"})
 	if err != nil {
 		t.Fatalf("Execute: %v", err)
 	}
@@ -207,7 +207,7 @@ func TestExecuteExit(t *testing.T) {
 				},
 			})
 			client := newTestClient(t, server)
-			p, err := client.Execute(context.Background(), &workspacev1.ExecuteStart{WorkloadId: "w1"})
+			p, err := client.Workload.Sandboxes.Execute(context.Background(), &workspacev1.ExecuteStart{SandboxId: "w1"})
 			if err != nil {
 				t.Fatalf("Execute: %v", err)
 			}
@@ -246,8 +246,8 @@ func TestExecuteKeepsGivenRequestKey(t *testing.T) {
 		},
 	})
 	client := newTestClient(t, server)
-	start := &workspacev1.ExecuteStart{WorkloadId: "w1", RequestKey: "given-key"}
-	p, err := client.Execute(context.Background(), start)
+	start := &workspacev1.ExecuteStart{SandboxId: "w1", RequestKey: "given-key"}
+	p, err := client.Workload.Sandboxes.Execute(context.Background(), start)
 	if err != nil {
 		t.Fatalf("Execute: %v", err)
 	}
@@ -268,8 +268,8 @@ func TestExecuteLostBeforeStarted(t *testing.T) {
 		},
 	})
 	client := newTestClient(t, server)
-	start := &workspacev1.ExecuteStart{WorkloadId: "w1"}
-	_, err := client.Execute(context.Background(), start)
+	start := &workspacev1.ExecuteStart{SandboxId: "w1"}
+	_, err := client.Workload.Sandboxes.Execute(context.Background(), start)
 	var lostErr *StreamLostError
 	if !errors.As(err, &lostErr) {
 		t.Fatalf("err %v, want StreamLostError", err)
@@ -298,7 +298,7 @@ func TestExecuteLostMidStream(t *testing.T) {
 		},
 	})
 	client := newTestClient(t, server)
-	p, err := client.Execute(context.Background(), &workspacev1.ExecuteStart{WorkloadId: "w1"})
+	p, err := client.Workload.Sandboxes.Execute(context.Background(), &workspacev1.ExecuteStart{SandboxId: "w1"})
 	if err != nil {
 		t.Fatalf("Execute: %v", err)
 	}
@@ -356,7 +356,7 @@ func TestExecuteContextCancelUnderBackpressure(t *testing.T) {
 	})
 	client := newTestClient(t, server)
 	ctx, cancel := context.WithCancel(context.Background())
-	p, err := client.Execute(ctx, &workspacev1.ExecuteStart{WorkloadId: "w1"})
+	p, err := client.Workload.Sandboxes.Execute(ctx, &workspacev1.ExecuteStart{SandboxId: "w1"})
 	if err != nil {
 		t.Fatalf("Execute: %v", err)
 	}
@@ -411,7 +411,7 @@ func TestExecuteStdinUnblocksOnCancel(t *testing.T) {
 	})
 	client := newTestClient(t, server)
 	ctx, cancel := context.WithCancel(context.Background())
-	p, err := client.Execute(ctx, &workspacev1.ExecuteStart{WorkloadId: "w1"})
+	p, err := client.Workload.Sandboxes.Execute(ctx, &workspacev1.ExecuteStart{SandboxId: "w1"})
 	if err != nil {
 		t.Fatalf("Execute: %v", err)
 	}
@@ -458,13 +458,13 @@ func TestExecuteStartRefused(t *testing.T) {
 	})
 	client := newTestClient(t, server)
 	start := &workspacev1.ExecuteStart{
-		WorkloadId: "w1",
+		SandboxId: "w1",
 		Command: &workspacev1.Command{
 			Argv: []string{"true"},
 			Env:  map[string]string{"BIG": strings.Repeat("x", 256<<10)},
 		},
 	}
-	_, err := client.Execute(context.Background(), start)
+	_, err := client.Workload.Sandboxes.Execute(context.Background(), start)
 	if connect.CodeOf(err) != connect.CodeFailedPrecondition {
 		t.Fatalf("err %v, want FAILED_PRECONDITION", err)
 	}
@@ -491,7 +491,7 @@ func TestExecuteStdinServerError(t *testing.T) {
 	client := newTestClient(t, server)
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	p, err := client.Execute(ctx, &workspacev1.ExecuteStart{WorkloadId: "w1"})
+	p, err := client.Workload.Sandboxes.Execute(ctx, &workspacev1.ExecuteStart{SandboxId: "w1"})
 	if err != nil {
 		t.Fatalf("Execute: %v", err)
 	}
