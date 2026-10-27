@@ -42,6 +42,8 @@ type Client struct {
 	auditEvent      workspacev1connect.AuditEventServiceClient
 	filler          workspacev1connect.FillerServiceClient
 	storageProvider workspacev1connect.StorageProviderServiceClient
+	product         workspacev1connect.ProductServiceClient
+	discovery       workspacev1connect.DiscoveryServiceClient
 
 	retry RetryPolicy
 }
@@ -101,6 +103,12 @@ func (c *Client) Filler() workspacev1connect.FillerServiceClient { return c.fill
 func (c *Client) StorageProvider() workspacev1connect.StorageProviderServiceClient {
 	return c.storageProvider
 }
+
+// Product is the ProductService client.
+func (c *Client) Product() workspacev1connect.ProductServiceClient { return c.product }
+
+// Discovery is the DiscoveryService client.
+func (c *Client) Discovery() workspacev1connect.DiscoveryServiceClient { return c.discovery }
 
 // ChannelClient is the calls of ChannelService.
 type ChannelClient interface {
@@ -163,7 +171,7 @@ func New(opts ...Option) (*Client, error) {
 	api := headerClient{next: httpClient, token: token, userAgent: userAgent(cfg.product)}
 	scope := scopeInterceptor{project: cfg.project, environment: cfg.environment}
 	retry := retryInterceptor{policy: policy}
-	interceptors := append(cfg.interceptors, scope, retry)
+	interceptors := append(cfg.interceptors, scope, retry, productInterceptor{})
 	options := append([]connect.ClientOption{connect.WithInterceptors(interceptors...)}, cfg.connectOptions...)
 
 	client := &Client{
@@ -183,6 +191,8 @@ func New(opts ...Option) (*Client, error) {
 		auditEvent:      workspacev1connect.NewAuditEventServiceClient(api, server, options...),
 		filler:          workspacev1connect.NewFillerServiceClient(api, server, options...),
 		storageProvider: workspacev1connect.NewStorageProviderServiceClient(api, server, options...),
+		product:         workspacev1connect.NewProductServiceClient(api, server, options...),
+		discovery:       workspacev1connect.NewDiscoveryServiceClient(api, server, options...),
 		retry:           policy,
 	}
 	workload := newWorkloadClient(client, workspacev1connect.NewWorkloadServiceClient(api, server, options...))

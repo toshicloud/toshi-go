@@ -15,6 +15,7 @@ import (
 
 	"connectrpc.com/connect"
 	"go.toshicloud.io/api/workspacev1"
+	"google.golang.org/protobuf/proto"
 
 	"go.toshicloud.io/toshi"
 )
@@ -284,4 +285,31 @@ func ExampleStreamLostError() {
 	// request key: key-1
 	// true
 	// toshi: execution exec-1 stream lost (request key key-1): unexpected EOF
+}
+
+func ExampleProductError() {
+	ctx := context.Background()
+	client, err := toshi.New()
+	if err != nil {
+		log.Fatal(err)
+	}
+	// Turning an outside product on installs it, and the API asks the
+	// caller to accept the access it wants first.
+	enable := &workspacev1.UpdateProductRequest{Id: "acme_ci", Enabled: proto.Bool(true)}
+	_, err = client.Product().UpdateProduct(ctx, connect.NewRequest(enable))
+	var refused *toshi.ProductError
+	if errors.As(err, &refused) && refused.Reason == toshi.ReasonAccessNotAccepted {
+		fmt.Println(refused.Product, refused.Reason, refused.Access)
+		// Accept exactly the access the product asks for.
+		enable.AcceptedAccess = refused.Access
+		_, err = client.Product().UpdateProduct(ctx, connect.NewRequest(enable))
+	}
+	if errors.As(err, &refused) {
+		// Off for the workspace: say which product and why.
+		fmt.Println(refused.Product, refused.Reason, refused.Feature)
+		return
+	}
+	if err != nil {
+		log.Fatal(err)
+	}
 }

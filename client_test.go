@@ -264,6 +264,10 @@ func TestClientMethodsCallTheirServices(t *testing.T) {
 	check("Filler", err)
 	_, err = client.StorageProvider().ListStorageProviders(ctx, connect.NewRequest(&workspacev1.ListStorageProvidersRequest{}))
 	check("StorageProvider", err)
+	_, err = client.Product().ListProducts(ctx, connect.NewRequest(&workspacev1.ListProductsRequest{}))
+	check("Product", err)
+	_, err = client.Discovery().Discover(ctx, connect.NewRequest(&workspacev1.DiscoverRequest{}))
+	check("Discovery", err)
 
 	want := []string{
 		workspacev1connect.WorkloadServiceCreateJobProcedure,
@@ -283,6 +287,8 @@ func TestClientMethodsCallTheirServices(t *testing.T) {
 		workspacev1connect.AuditEventServiceListAuditEventsProcedure,
 		workspacev1connect.FillerServiceListFillersProcedure,
 		workspacev1connect.StorageProviderServiceListStorageProvidersProcedure,
+		workspacev1connect.ProductServiceListProductsProcedure,
+		workspacev1connect.DiscoveryServiceDiscoverProcedure,
 	}
 	calls := tt.Calls()
 	if len(calls) != len(want) {
@@ -605,6 +611,8 @@ func TestAccessorsReturnSameClient(t *testing.T) {
 		{"AuditEvent", client.AuditEvent(), client.AuditEvent()},
 		{"Filler", client.Filler(), client.Filler()},
 		{"StorageProvider", client.StorageProvider(), client.StorageProvider()},
+		{"Product", client.Product(), client.Product()},
+		{"Discovery", client.Discovery(), client.Discovery()},
 		{"Workload Jobs", workload.Jobs(), workload.Jobs()},
 		{"Workload Sandboxes", workload.Sandboxes(), workload.Sandboxes()},
 		{"Workload Services", workload.Services(), workload.Services()},

@@ -145,3 +145,34 @@ func sharedSet(m protoreflect.Message, fields protoreflect.FieldDescriptors) boo
 func isString(fd protoreflect.FieldDescriptor) bool {
 	return fd != nil && fd.Kind() == protoreflect.StringKind && !fd.IsList() && !fd.IsMap()
 }
+
+// productInterceptor turns a product's refusal into a *ProductError, on a
+// unary call's error and on what a stream's Receive returns.
+type productInterceptor struct{}
+
+func (productInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
+	return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+		res, err := next(ctx, req)
+		return res, asProductError(err)
+	}
+}
+
+func (productInterceptor) WrapStreamingClient(next connect.StreamingClientFunc) connect.StreamingClientFunc {
+	return func(ctx context.Context, spec connect.Spec) connect.StreamingClientConn {
+		return productClientConn{next(ctx, spec)}
+	}
+}
+
+func (productInterceptor) WrapStreamingHandler(next connect.StreamingHandlerFunc) connect.StreamingHandlerFunc {
+	return next
+}
+
+// productClientConn turns a product's refusal on Receive into a
+// *ProductError.
+type productClientConn struct {
+	connect.StreamingClientConn
+}
+
+func (c productClientConn) Receive(msg any) error {
+	return asProductError(c.StreamingClientConn.Receive(msg))
+}
