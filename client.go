@@ -44,6 +44,9 @@ type Client struct {
 	storageProvider workspacev1connect.StorageProviderServiceClient
 	product         workspacev1connect.ProductServiceClient
 	discovery       workspacev1connect.DiscoveryServiceClient
+	connection      workspacev1connect.ConnectionServiceClient
+	hook            workspacev1connect.HookServiceClient
+	role            workspacev1connect.RoleServiceClient
 
 	retry RetryPolicy
 }
@@ -109,6 +112,15 @@ func (c *Client) Product() workspacev1connect.ProductServiceClient { return c.pr
 
 // Discovery is the DiscoveryService client.
 func (c *Client) Discovery() workspacev1connect.DiscoveryServiceClient { return c.discovery }
+
+// Connection is the ConnectionService client.
+func (c *Client) Connection() workspacev1connect.ConnectionServiceClient { return c.connection }
+
+// Hook is the HookService client.
+func (c *Client) Hook() workspacev1connect.HookServiceClient { return c.hook }
+
+// Role is the RoleService client.
+func (c *Client) Role() workspacev1connect.RoleServiceClient { return c.role }
 
 // ChannelClient is the calls of ChannelService.
 type ChannelClient interface {
@@ -193,6 +205,9 @@ func New(opts ...Option) (*Client, error) {
 		storageProvider: workspacev1connect.NewStorageProviderServiceClient(api, server, options...),
 		product:         workspacev1connect.NewProductServiceClient(api, server, options...),
 		discovery:       workspacev1connect.NewDiscoveryServiceClient(api, server, options...),
+		connection:      workspacev1connect.NewConnectionServiceClient(api, server, options...),
+		hook:            workspacev1connect.NewHookServiceClient(api, server, options...),
+		role:            workspacev1connect.NewRoleServiceClient(api, server, options...),
 		retry:           policy,
 	}
 	workload := newWorkloadClient(client, workspacev1connect.NewWorkloadServiceClient(api, server, options...))

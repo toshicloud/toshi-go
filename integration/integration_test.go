@@ -343,6 +343,53 @@ func TestIntegration(t *testing.T) {
 		})
 	})
 
+	t.Run("ConnectionHookRoleClients", func(t *testing.T) {
+		created, err := wide.Connection().CreateConnection(ctx, connect.NewRequest(&workspacev1.CreateConnectionRequest{
+			Kind: workspacev1.ConnectionKind_CONNECTION_KIND_WEBHOOK, Name: "sdk-transform", Project: projectName, Environment: environment,
+		}))
+		if err != nil {
+			t.Fatalf("CreateConnection: %v", err)
+		}
+		id := created.Msg.GetConnection().GetId()
+		// No transform version is uploaded: setting one that does not exist
+		// is refused, and clearing leaves the connection with none.
+		_, err = wide.Connection().SetConnectionTransform(ctx, connect.NewRequest(&workspacev1.SetConnectionTransformRequest{ConnectionId: id, Version: 99}))
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			t.Fatalf("SetConnectionTransform to a missing version: %v, want NOT_FOUND", err)
+		}
+		cleared, err := wide.Connection().SetConnectionTransform(ctx, connect.NewRequest(&workspacev1.SetConnectionTransformRequest{ConnectionId: id}))
+		if err != nil {
+			t.Fatalf("SetConnectionTransform clear: %v", err)
+		}
+		if got := cleared.Msg.GetConnection(); got.GetId() != id || got.GetTransformVersion() != 0 || cleared.Msg.GetPreviousVersion() != 0 {
+			t.Fatalf("SetConnectionTransform clear = %v, previous %d; want %s with no version", got, cleared.Msg.GetPreviousVersion(), id)
+		}
+		deliveries, err := wide.Connection().ListConnectionDeliveries(ctx, connect.NewRequest(&workspacev1.ListConnectionDeliveriesRequest{ConnectionId: id}))
+		if err != nil {
+			t.Fatalf("ListConnectionDeliveries: %v", err)
+		}
+		if len(deliveries.Msg.GetDeliveries()) != 0 {
+			t.Fatalf("a new connection has %d deliveries", len(deliveries.Msg.GetDeliveries()))
+		}
+		_, err = wide.Connection().GetConnectionDelivery(ctx, connect.NewRequest(&workspacev1.GetConnectionDeliveryRequest{Id: "missing"}))
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			t.Fatalf("GetConnectionDelivery of a missing id: %v, want NOT_FOUND", err)
+		}
+		hooks, err := wide.Hook().ListHooks(ctx, connect.NewRequest(&workspacev1.ListHooksRequest{Type: workspacev1.HookType_HOOK_TYPE_TRANSFORM}))
+		if err != nil {
+			t.Fatalf("ListHooks: %v", err)
+		}
+		if len(hooks.Msg.GetVersions()) != 0 {
+			t.Fatalf("a workspace without a transform has %d versions", len(hooks.Msg.GetVersions()))
+		}
+		if _, err := wide.Role().ListRoles(ctx, connect.NewRequest(&workspacev1.ListRolesRequest{})); err != nil {
+			t.Fatalf("ListRoles: %v", err)
+		}
+		if _, err := wide.Connection().DeleteConnection(ctx, connect.NewRequest(&workspacev1.DeleteConnectionRequest{Id: id})); err != nil {
+			t.Fatalf("DeleteConnection: %v", err)
+		}
+	})
+
 	t.Run("WatchJobs", func(t *testing.T) {
 		watchCtx, watchCancel := context.WithTimeout(ctx, 20*time.Second)
 		defer watchCancel()
