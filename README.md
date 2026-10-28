@@ -195,6 +195,17 @@ if err != nil {
 }
 ```
 
+## A rollback the registry refuses
+
+`Workload().Services().Rollback` asks the revision's registry whether it
+still serves the revision's image before it selects it. A refusal is a
+`*toshi.RollbackImageError`, which `errors.As` finds: its `Reason` is
+`ReasonImageNotServed` when the registry answered that it does not serve the
+image, or `ReasonImageCheckFailed` when it could not say. A revision's
+`ImageCheck` carries the last answer: its `Outcome`, the registry's `Status`
+and `Message`, and when it was asked, `CheckedAt`. Reading a revision asks
+no registry.
+
 ## Interceptors and the User-Agent
 
 `WithInterceptors` adds Connect interceptors to every service client, for

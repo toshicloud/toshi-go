@@ -101,6 +101,7 @@ var hookOnly = map[string]bool{
 	workspacev1connect.ChannelServiceGetLinkProcedure:                   true,
 	workspacev1connect.ChannelServiceSendChannelMessageProcedure:        true,
 	workspacev1connect.ChannelServiceTailChannelMessagesProcedure:       true,
+	workspacev1connect.ChannelServiceReplayChannelMessageProcedure:      true,
 	// RecordingService
 	workspacev1connect.RecordingServiceListRecordingsProcedure:           true,
 	workspacev1connect.RecordingServiceGetRecordingProcedure:             true,
