@@ -274,6 +274,8 @@ func TestClientMethodsCallTheirServices(t *testing.T) {
 	check("Hook", err)
 	_, err = client.Role().ListRoles(ctx, connect.NewRequest(&workspacev1.ListRolesRequest{}))
 	check("Role", err)
+	_, err = client.Trigger().ListTriggers(ctx, connect.NewRequest(&workspacev1.ListTriggersRequest{}))
+	check("Trigger", err)
 
 	want := []string{
 		workspacev1connect.WorkloadServiceCreateJobProcedure,
@@ -298,6 +300,7 @@ func TestClientMethodsCallTheirServices(t *testing.T) {
 		workspacev1connect.ConnectionServiceSetConnectionTransformProcedure,
 		workspacev1connect.HookServiceListHooksProcedure,
 		workspacev1connect.RoleServiceListRolesProcedure,
+		workspacev1connect.TriggerServiceListTriggersProcedure,
 	}
 	calls := tt.Calls()
 	if len(calls) != len(want) {
