@@ -35,6 +35,8 @@ type services struct {
 	workspacev1connect.UnimplementedStorageProviderServiceHandler
 	workspacev1connect.UnimplementedProductServiceHandler
 	workspacev1connect.UnimplementedDiscoveryServiceHandler
+	workspacev1connect.UnimplementedAccountServiceHandler
+	workspacev1connect.UnimplementedImageServiceHandler
 	workspacev1connect.UnimplementedConnectionServiceHandler
 	workspacev1connect.UnimplementedHookServiceHandler
 	workspacev1connect.UnimplementedRoleServiceHandler
@@ -87,6 +89,10 @@ func (f *Fake) start() {
 	path, handler = workspacev1connect.NewProductServiceHandler(service, options)
 	mount(path, handler)
 	path, handler = workspacev1connect.NewDiscoveryServiceHandler(service, options)
+	mount(path, handler)
+	path, handler = workspacev1connect.NewAccountServiceHandler(service, options)
+	mount(path, handler)
+	path, handler = workspacev1connect.NewImageServiceHandler(service, options)
 	mount(path, handler)
 	path, handler = workspacev1connect.NewConnectionServiceHandler(service, options)
 	mount(path, handler)
