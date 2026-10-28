@@ -268,14 +268,12 @@ func TestClientMethodsCallTheirServices(t *testing.T) {
 	check("Product", err)
 	_, err = client.Discovery().Discover(ctx, connect.NewRequest(&workspacev1.DiscoverRequest{}))
 	check("Discovery", err)
-	_, err = client.Connection().SetConnectionTransform(ctx, connect.NewRequest(&workspacev1.SetConnectionTransformRequest{ConnectionId: "con-1", Version: 1}))
+	_, err = client.Connection().UpdateConnection(ctx, connect.NewRequest(&workspacev1.UpdateConnectionRequest{Connection: &workspacev1.Connection{Id: "con-1"}}))
 	check("Connection", err)
 	_, err = client.Account().GetAccount(ctx, connect.NewRequest(&workspacev1.GetAccountRequest{}))
 	check("Account", err)
 	_, err = client.Image().ListImages(ctx, connect.NewRequest(&workspacev1.ListImagesRequest{}))
 	check("Image", err)
-	_, err = client.Hook().ListHooks(ctx, connect.NewRequest(&workspacev1.ListHooksRequest{}))
-	check("Hook", err)
 	_, err = client.Role().ListRoles(ctx, connect.NewRequest(&workspacev1.ListRolesRequest{}))
 	check("Role", err)
 	_, err = client.Trigger().ListTriggers(ctx, connect.NewRequest(&workspacev1.ListTriggersRequest{}))
@@ -301,10 +299,9 @@ func TestClientMethodsCallTheirServices(t *testing.T) {
 		workspacev1connect.StorageProviderServiceListStorageProvidersProcedure,
 		workspacev1connect.ProductServiceListProductsProcedure,
 		workspacev1connect.DiscoveryServiceDiscoverProcedure,
-		workspacev1connect.ConnectionServiceSetConnectionTransformProcedure,
+		workspacev1connect.ConnectionServiceUpdateConnectionProcedure,
 		workspacev1connect.AccountServiceGetAccountProcedure,
 		workspacev1connect.ImageServiceListImagesProcedure,
-		workspacev1connect.HookServiceListHooksProcedure,
 		workspacev1connect.RoleServiceListRolesProcedure,
 		workspacev1connect.TriggerServiceListTriggersProcedure,
 	}
@@ -632,7 +629,6 @@ func TestAccessorsReturnSameClient(t *testing.T) {
 		{"Product", client.Product(), client.Product()},
 		{"Discovery", client.Discovery(), client.Discovery()},
 		{"Connection", client.Connection(), client.Connection()},
-		{"Hook", client.Hook(), client.Hook()},
 		{"Role", client.Role(), client.Role()},
 		{"Workload Jobs", workload.Jobs(), workload.Jobs()},
 		{"Workload Sandboxes", workload.Sandboxes(), workload.Sandboxes()},

@@ -293,20 +293,14 @@ func ExampleProductError() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	// Turning an outside product on installs it, and the API asks the
-	// caller to accept the access it wants first.
+	// Turn a product on for the workspace.
 	enable := &workspacev1.UpdateProductRequest{Id: "acme_ci", Enabled: proto.Bool(true)}
 	_, err = client.Product().UpdateProduct(ctx, connect.NewRequest(enable))
 	var refused *toshi.ProductError
-	if errors.As(err, &refused) && refused.Reason == toshi.ReasonAccessNotAccepted {
-		fmt.Println(refused.Product, refused.Reason, refused.Access)
-		// Accept exactly the access the product asks for.
-		enable.AcceptedAccess = refused.Access
-		_, err = client.Product().UpdateProduct(ctx, connect.NewRequest(enable))
-	}
 	if errors.As(err, &refused) {
-		// Off for the workspace: say which product and why.
-		fmt.Println(refused.Product, refused.Reason, refused.Feature)
+		// Off for the workspace: which product, the input that turns it
+		// off, and, for the deployment's config, how far it has wound down.
+		fmt.Println(refused.Product, refused.Cause, refused.State)
 		return
 	}
 	if err != nil {

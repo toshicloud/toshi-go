@@ -6,12 +6,14 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	workspacev1 "go.toshicloud.io/api/workspacev1"
 	workspacev1connect "go.toshicloud.io/api/workspacev1/workspacev1connect"
 
+	"go.toshicloud.io/toshi"
 	"go.toshicloud.io/toshi/toshitest"
 )
 
@@ -67,35 +69,146 @@ func TestWebhookEndpointCursorThroughTheClient(t *testing.T) {
 	}
 }
 
-// TestCatalogEntryStateThroughTheClient proves an entry's listing state,
-// its reason and its successor come back through the client.
-func TestCatalogEntryStateThroughTheClient(t *testing.T) {
+// TestWorkspaceUpdateThroughTheClient proves the update mask and the etag a
+// caller sends reach the API, and the workspace's settings and new etag come
+// back.
+func TestWorkspaceUpdateThroughTheClient(t *testing.T) {
+	ctx := context.Background()
 	tt := toshitest.New(t)
-	toshitest.On(tt, workspacev1connect.ProductServiceListCatalogEntriesProcedure,
-		func(context.Context, *workspacev1.ListCatalogEntriesRequest) (*workspacev1.ListCatalogEntriesResponse, error) {
-			return &workspacev1.ListCatalogEntriesResponse{Entries: []*workspacev1.CatalogEntry{{
-				Id: "acme_ci", Name: "Acme CI", Version: "1.2.0",
-				Stale:           true,
-				State:           workspacev1.CatalogEntryState_CATALOG_ENTRY_STATE_DEPRECATED,
-				StateReason:     "superseded",
-				Successor:       "acme_ci@2.0.0",
-				SourceExpiresAt: timestamppb.Now(),
-			}}}, nil
+	toshitest.On(tt, workspacev1connect.WorkspaceServiceUpdateWorkspaceProcedure,
+		func(_ context.Context, request *workspacev1.UpdateWorkspaceRequest) (*workspacev1.UpdateWorkspaceResponse, error) {
+			if got := request.GetUpdateMask().GetPaths(); len(got) != 1 || got[0] != "settings.sign_in" {
+				t.Errorf("the update mask is %v", got)
+			}
+			if request.GetWorkspace().GetEtag() != "etag-1" {
+				t.Errorf("the etag is %q", request.GetWorkspace().GetEtag())
+			}
+			return &workspacev1.UpdateWorkspaceResponse{Workspace: &workspacev1.Workspace{
+				Id:   "ws-1",
+				Etag: "etag-2",
+				Settings: &workspacev1.WorkspaceSettings{
+					HistoryDays: proto.Int32(30),
+					SignIn:      request.GetWorkspace().GetSettings().GetSignIn(),
+				},
+			}}, nil
 		})
 
-	got, err := tt.Client().Product().ListCatalogEntries(context.Background(), connect.NewRequest(&workspacev1.ListCatalogEntriesRequest{}))
+	updated, err := tt.Client().Workspace().UpdateWorkspace(ctx, connect.NewRequest(&workspacev1.UpdateWorkspaceRequest{
+		Workspace: &workspacev1.Workspace{
+			Etag:     "etag-1",
+			Settings: &workspacev1.WorkspaceSettings{SignIn: &workspacev1.WorkspaceSignIn{Provider: "github"}},
+		},
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"settings.sign_in"}},
+	}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	entry := got.Msg.GetEntries()[0]
-	if !entry.GetStale() || entry.GetSourceExpiresAt() == nil {
-		t.Errorf("the entry's staleness is %v at %v", entry.GetStale(), entry.GetSourceExpiresAt())
+	workspace := updated.Msg.GetWorkspace()
+	if workspace.GetEtag() != "etag-2" {
+		t.Errorf("the workspace's etag is %q", workspace.GetEtag())
 	}
-	if entry.GetState() != workspacev1.CatalogEntryState_CATALOG_ENTRY_STATE_DEPRECATED {
-		t.Errorf("the entry's state is %v", entry.GetState())
+	if workspace.GetSettings().GetHistoryDays() != 30 {
+		t.Errorf("the workspace's history days are %d", workspace.GetSettings().GetHistoryDays())
 	}
-	if entry.GetStateReason() != "superseded" || entry.GetSuccessor() != "acme_ci@2.0.0" {
-		t.Errorf("the entry's reason and successor are %q and %q", entry.GetStateReason(), entry.GetSuccessor())
+	if workspace.GetSettings().GetSignIn().GetProvider() != "github" {
+		t.Errorf("the workspace's sign-in provider is %q", workspace.GetSettings().GetSignIn().GetProvider())
+	}
+}
+
+// TestConnectionTargetThroughTheClient proves a connection's delivery target
+// moves by the update mask, and that a delivery run names the delivery it
+// posted to the target.
+func TestConnectionTargetThroughTheClient(t *testing.T) {
+	ctx := context.Background()
+	tt := toshitest.New(t)
+	toshitest.On(tt, workspacev1connect.ConnectionServiceUpdateConnectionProcedure,
+		func(_ context.Context, request *workspacev1.UpdateConnectionRequest) (*workspacev1.UpdateConnectionResponse, error) {
+			if got := request.GetUpdateMask().GetPaths(); len(got) != 1 || got[0] != "target" {
+				t.Errorf("the update mask is %v", got)
+			}
+			return &workspacev1.UpdateConnectionResponse{Connection: &workspacev1.Connection{
+				Id:     request.GetConnection().GetId(),
+				Target: request.GetConnection().GetTarget(),
+			}}, nil
+		})
+	toshitest.On(tt, workspacev1connect.ConnectionServiceGetConnectionDeliveryProcedure,
+		func(context.Context, *workspacev1.GetConnectionDeliveryRequest) (*workspacev1.GetConnectionDeliveryResponse, error) {
+			return &workspacev1.GetConnectionDeliveryResponse{
+				Delivery: &workspacev1.ConnectionDelivery{Id: "del-1"},
+				Runs: []*workspacev1.ConnectionDeliveryRun{{
+					Run: 1, Outcome: "delivered", TargetDeliveryId: "target-del-1",
+				}},
+			}, nil
+		})
+
+	client := tt.Client()
+	updated, err := client.Connection().UpdateConnection(ctx, connect.NewRequest(&workspacev1.UpdateConnectionRequest{
+		Connection: &workspacev1.Connection{
+			Id:     "con-1",
+			Target: &workspacev1.ConnectionTarget{Url: "https://example.com/hooks", Secret: "whsec_c2VjcmV0"},
+		},
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"target"}},
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := updated.Msg.GetConnection().GetTarget().GetUrl(); got != "https://example.com/hooks" {
+		t.Errorf("the connection's target is %q", got)
+	}
+
+	delivery, err := client.Connection().GetConnectionDelivery(ctx, connect.NewRequest(&workspacev1.GetConnectionDeliveryRequest{Id: "del-1"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	run := delivery.Msg.GetRuns()[0]
+	if run.GetOutcome() != "delivered" || run.GetTargetDeliveryId() != "target-del-1" {
+		t.Errorf("the run is %q posted as %q", run.GetOutcome(), run.GetTargetDeliveryId())
+	}
+}
+
+// TestWorkloadImageThroughTheClient proves a job and a sandbox carry the
+// image they run in, and read back the image version the API fixed.
+func TestWorkloadImageThroughTheClient(t *testing.T) {
+	ctx := context.Background()
+	tt := toshitest.New(t)
+	toshitest.On(tt, workspacev1connect.WorkloadServiceCreateJobProcedure,
+		func(_ context.Context, request *workspacev1.CreateJobRequest) (*workspacev1.CreateJobResponse, error) {
+			if got := request.GetSpec().GetImage(); got != "build" {
+				t.Errorf("the job's image is %q", got)
+			}
+			return &workspacev1.CreateJobResponse{Job: &workspacev1.Job{Spec: &workspacev1.JobSpec{
+				Image: "build", ImageVersionId: "imgv-1",
+			}}}, nil
+		})
+	toshitest.On(tt, workspacev1connect.WorkloadServiceCreateSandboxProcedure,
+		func(_ context.Context, request *workspacev1.CreateSandboxRequest) (*workspacev1.CreateSandboxResponse, error) {
+			if got := request.GetSpec().GetImage(); got != "dev" {
+				t.Errorf("the sandbox's image is %q", got)
+			}
+			return &workspacev1.CreateSandboxResponse{Sandbox: &workspacev1.Sandbox{Spec: &workspacev1.SandboxSpec{
+				Image: "dev", ImageVersionId: "imgv-2",
+			}}}, nil
+		})
+
+	client := tt.Client(toshi.WithScope("proj", "env"))
+	job, err := client.Workload().Jobs().Create(ctx, &workspacev1.CreateJobRequest{
+		Spec: &workspacev1.JobSpec{Image: "build"}, RequestKey: "key-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if job.GetJob().GetSpec().GetImageVersionId() != "imgv-1" {
+		t.Errorf("the job's image version is %q", job.GetJob().GetSpec().GetImageVersionId())
+	}
+
+	sandbox, err := client.Workload().Sandboxes().Create(ctx, &workspacev1.CreateSandboxRequest{
+		Spec: &workspacev1.SandboxSpec{Image: "dev"}, RequestKey: "key-2",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sandbox.GetSandbox().GetSpec().GetImageVersionId() != "imgv-2" {
+		t.Errorf("the sandbox's image version is %q", sandbox.GetSandbox().GetSpec().GetImageVersionId())
 	}
 }
 

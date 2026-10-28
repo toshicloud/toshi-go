@@ -3,7 +3,6 @@ package toshi
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"connectrpc.com/connect"
 	"google.golang.org/protobuf/encoding/protowire"
@@ -75,23 +74,26 @@ type ProductReason string
 
 // The reasons a call is refused for a product.
 const (
-	// ReasonProductNotInstalled: the deployment's build does not include the
-	// product. The code is CodeUnimplemented.
-	ReasonProductNotInstalled ProductReason = "PRODUCT_NOT_INSTALLED"
-	// ReasonProductDisabled: the deployment turned the product off. The
-	// code is CodeFailedPrecondition.
-	ReasonProductDisabled ProductReason = "PRODUCT_DISABLED"
-	// ReasonProductNotEntitled: the workspace's entitlements leave the
-	// product out. The code is CodePermissionDenied.
-	ReasonProductNotEntitled ProductReason = "PRODUCT_NOT_ENTITLED"
-	// ReasonProductTurnedOff: the workspace's settings turn the product off,
-	// or an outside product's installation is turned off. The code is
-	// CodeFailedPrecondition.
-	ReasonProductTurnedOff ProductReason = "PRODUCT_TURNED_OFF"
-	// ReasonAccessNotAccepted: turning an outside product on installs it, and
-	// the call did not accept the access it asks for. The code is
-	// CodeFailedPrecondition.
-	ReasonAccessNotAccepted ProductReason = "ACCESS_NOT_ACCEPTED"
+	// ReasonProductUnavailable: the product is off for the workspace. The
+	// code is CodeFailedPrecondition, and Cause says which input turned it
+	// off.
+	ReasonProductUnavailable ProductReason = "PRODUCT_UNAVAILABLE"
+)
+
+// ProductCause is the input that turned a product off: a ProductError's
+// Cause.
+type ProductCause string
+
+// The inputs that turn a product off.
+const (
+	// CauseBuild: the deployment's build does not include the product.
+	CauseBuild ProductCause = "build"
+	// CauseOperator: the deployment's config turns the product off.
+	CauseOperator ProductCause = "operator"
+	// CausePlan: the workspace's plan leaves the product out.
+	CausePlan ProductCause = "plan"
+	// CauseWorkspace: the workspace's settings turn the product off.
+	CauseWorkspace ProductCause = "workspace"
 )
 
 // RefusalReason says why the API refused a call and named the reason: the
@@ -117,6 +119,10 @@ const (
 	// ReasonImageNameTaken: another live image of the workspace has the
 	// name. The code is CodeAlreadyExists.
 	ReasonImageNameTaken RefusalReason = "IMAGE_NAME_TAKEN"
+	// ReasonImageNotReady: a workspace image named by a job, a sandbox or a
+	// service revision has no ready version. The code is
+	// CodeFailedPrecondition.
+	ReasonImageNotReady RefusalReason = "IMAGE_NOT_READY"
 	// ReasonImageNotServed: the revision's registry answered that it does
 	// not serve the revision's image digest. The code is
 	// CodeFailedPrecondition.
@@ -145,26 +151,22 @@ const (
 // errorInfoDomain is the ErrorInfo domain of the API's refusals.
 const errorInfoDomain = "toshi.run"
 
-// ProductError is the API's refusal of a call for a product: one that is off
-// for the workspace, or an outside product whose access the call did not
-// accept. errors.As finds it on the error of any call a Client makes, Wait,
-// Watch and Execute included. It wraps the *connect.Error, so
+// ProductError is the API's refusal of a call for a product that is off for
+// the workspace. errors.As finds it on the error of any call a Client makes,
+// Wait, Watch and Execute included. It wraps the *connect.Error, so
 // connect.CodeOf reads its code as before.
 type ProductError struct {
 	// Product is the product's ID, such as runners.
 	Product string
 	Reason  ProductReason
-	// Feature is the setting that turns the product on, such as
-	// runners.enabled; empty for ReasonAccessNotAccepted.
-	Feature string
-	// State is how far a product the deployment disables has wound down:
-	// no_new_work, draining or stopped; empty otherwise.
+	// Cause is the input that turned the product off: CauseBuild,
+	// CauseOperator, CausePlan or CauseWorkspace.
+	Cause ProductCause
+	// State is how far a product the deployment's config turns off has
+	// wound down: no_new_work, draining or stopped; empty otherwise.
 	State string
-	// Access is the access an outside product asks for, for
-	// ReasonAccessNotAccepted: accept exactly this list to install it.
-	Access []string
-	Code   connect.Code
-	Err    *connect.Error
+	Code  connect.Code
+	Err   *connect.Error
 }
 
 // Error returns the API's message.
@@ -210,19 +212,15 @@ func asProductError(err error) error {
 			continue
 		}
 		switch r := ProductReason(reason); r {
-		case ReasonProductNotInstalled, ReasonProductDisabled, ReasonProductNotEntitled, ReasonProductTurnedOff, ReasonAccessNotAccepted:
-			pe := &ProductError{
+		case ReasonProductUnavailable:
+			return &ProductError{
 				Product: metadata["product"],
 				Reason:  r,
-				Feature: metadata["feature"],
+				Cause:   ProductCause(metadata["cause"]),
 				State:   metadata["state"],
 				Code:    cerr.Code(),
 				Err:     cerr,
 			}
-			if access := metadata["access"]; access != "" {
-				pe.Access = strings.Split(access, ",")
-			}
-			return pe
 		}
 	}
 	return err
@@ -249,9 +247,9 @@ func asRefusalError(err error) error {
 		}
 		switch r := RefusalReason(reason); r {
 		case ReasonDisplayInputNotEnabled, ReasonImageBuildInProgress, ReasonImageCheckFailed,
-			ReasonImageInUse, ReasonImageNameTaken, ReasonImageNotServed, ReasonLastIdentity,
-			ReasonLastMember, ReasonLastOwner, ReasonPermissionMissing, ReasonPlanExcludesImages,
-			ReasonToshiLicensedWindows:
+			ReasonImageInUse, ReasonImageNameTaken, ReasonImageNotReady, ReasonImageNotServed,
+			ReasonLastIdentity, ReasonLastMember, ReasonLastOwner, ReasonPermissionMissing,
+			ReasonPlanExcludesImages, ReasonToshiLicensedWindows:
 			return &RefusalError{Reason: r, Code: cerr.Code(), Err: cerr}
 		}
 	}
