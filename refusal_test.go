@@ -28,6 +28,7 @@ func TestRefusalErrorTellsTheReasonsApart(t *testing.T) {
 		{"IMAGE_CHECK_FAILED", connect.CodeFailedPrecondition, toshi.ReasonImageCheckFailed},
 		{"IMAGE_IN_USE", connect.CodeFailedPrecondition, toshi.ReasonImageInUse},
 		{"IMAGE_NAME_TAKEN", connect.CodeAlreadyExists, toshi.ReasonImageNameTaken},
+		{"IMAGE_NOT_READY", connect.CodeFailedPrecondition, toshi.ReasonImageNotReady},
 		{"IMAGE_NOT_SERVED", connect.CodeFailedPrecondition, toshi.ReasonImageNotServed},
 		{"LAST_IDENTITY", connect.CodeFailedPrecondition, toshi.ReasonLastIdentity},
 		{"LAST_MEMBER", connect.CodeFailedPrecondition, toshi.ReasonLastMember},

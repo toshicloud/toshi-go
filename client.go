@@ -47,7 +47,6 @@ type Client struct {
 	connection      workspacev1connect.ConnectionServiceClient
 	account         workspacev1connect.AccountServiceClient
 	image           workspacev1connect.ImageServiceClient
-	hook            workspacev1connect.HookServiceClient
 	role            workspacev1connect.RoleServiceClient
 	trigger         workspacev1connect.TriggerServiceClient
 
@@ -124,9 +123,6 @@ func (c *Client) Account() workspacev1connect.AccountServiceClient { return c.ac
 
 // Image is the ImageService client.
 func (c *Client) Image() workspacev1connect.ImageServiceClient { return c.image }
-
-// Hook is the HookService client.
-func (c *Client) Hook() workspacev1connect.HookServiceClient { return c.hook }
 
 // Role is the RoleService client.
 func (c *Client) Role() workspacev1connect.RoleServiceClient { return c.role }
@@ -223,7 +219,6 @@ func New(opts ...Option) (*Client, error) {
 		connection:      workspacev1connect.NewConnectionServiceClient(api, server, options...),
 		account:         workspacev1connect.NewAccountServiceClient(api, server, options...),
 		image:           workspacev1connect.NewImageServiceClient(api, server, options...),
-		hook:            workspacev1connect.NewHookServiceClient(api, server, options...),
 		role:            workspacev1connect.NewRoleServiceClient(api, server, options...),
 		trigger:         workspacev1connect.NewTriggerServiceClient(api, server, options...),
 		retry:           policy,

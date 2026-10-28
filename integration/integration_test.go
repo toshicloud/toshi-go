@@ -3,11 +3,9 @@ package integration_test
 import (
 	"context"
 	"crypto/ecdsa"
-	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
@@ -40,8 +38,6 @@ const (
 	account        = "acme"
 	projectName    = "default"
 	environment    = "production"
-	// probeProduct is the outside product the catalog this test signs lists.
-	probeProduct = "sdk_probe"
 )
 
 func TestIntegration(t *testing.T) {
@@ -85,7 +81,7 @@ func TestIntegration(t *testing.T) {
 	fakePort := freePort(t)
 	baseURL := fmt.Sprintf("https://127.0.0.1:%d", servePort)
 	configPath := filepath.Join(dir, "toshi.toml")
-	writeConfig(t, configPath, dir, servePort, fakePort, certPath, keyPath, appKeyPath, webhookPath, operatorPath, localKeyPath, writeCatalog(t, bin, dir))
+	writeConfig(t, configPath, dir, servePort, fakePort, certPath, keyPath, appKeyPath, webhookPath, operatorPath, localKeyPath)
 
 	fakeLog := filepath.Join(dir, "fake.log")
 	serveLog := filepath.Join(dir, "serve.log")
@@ -130,6 +126,7 @@ func TestIntegration(t *testing.T) {
 		"--workspace", installationID,
 		"--name", "sdk-integration",
 		"--project", projectName,
+		"--reason", "sdk integration test",
 	))
 	if token == "" {
 		t.Fatal("tokens create printed no token")
@@ -154,6 +151,7 @@ func TestIntegration(t *testing.T) {
 	workspaceWide := strings.TrimSpace(run(t, operatorEnv, bin, "token", "create",
 		"--workspace", installationID,
 		"--name", "sdk-integration-workspace",
+		"--reason", "sdk integration test",
 	))
 	wide, err := toshi.New(
 		toshi.WithServer(baseURL),
@@ -343,27 +341,48 @@ func TestIntegration(t *testing.T) {
 		})
 	})
 
-	t.Run("ConnectionHookRoleClients", func(t *testing.T) {
+	t.Run("ConnectionRoleClients", func(t *testing.T) {
 		created, err := wide.Connection().CreateConnection(ctx, connect.NewRequest(&workspacev1.CreateConnectionRequest{
-			Kind: workspacev1.ConnectionKind_CONNECTION_KIND_WEBHOOK, Name: "sdk-transform", Project: projectName, Environment: environment,
+			Kind: workspacev1.ConnectionKind_CONNECTION_KIND_WEBHOOK, Name: "sdk-target", Project: projectName, Environment: environment,
 		}))
 		if err != nil {
 			t.Fatalf("CreateConnection: %v", err)
 		}
 		id := created.Msg.GetConnection().GetId()
-		// No transform version is uploaded: setting one that does not exist
-		// is refused, and clearing leaves the connection with none.
-		_, err = wide.Connection().SetConnectionTransform(ctx, connect.NewRequest(&workspacev1.SetConnectionTransformRequest{ConnectionId: id, Version: 99}))
-		if connect.CodeOf(err) != connect.CodeNotFound {
-			t.Fatalf("SetConnectionTransform to a missing version: %v, want NOT_FOUND", err)
-		}
-		cleared, err := wide.Connection().SetConnectionTransform(ctx, connect.NewRequest(&workspacev1.SetConnectionTransformRequest{ConnectionId: id}))
+
+		// A webhook connection's delivery target moves by the update mask,
+		// and the secret is input only.
+		updated, err := wide.Connection().UpdateConnection(ctx, connect.NewRequest(&workspacev1.UpdateConnectionRequest{
+			Connection: &workspacev1.Connection{Id: id, Target: &workspacev1.ConnectionTarget{
+				Url: "https://example.com/toshi-hooks", Secret: "whsec_c2RrLXRlc3Qtc2VjcmV0LTAwMDAwMDAw",
+			}},
+			UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"target"}},
+		}))
 		if err != nil {
-			t.Fatalf("SetConnectionTransform clear: %v", err)
+			t.Fatalf("UpdateConnection target: %v", err)
 		}
-		if got := cleared.Msg.GetConnection(); got.GetId() != id || got.GetTransformVersion() != 0 || cleared.Msg.GetPreviousVersion() != 0 {
-			t.Fatalf("SetConnectionTransform clear = %v, previous %d; want %s with no version", got, cleared.Msg.GetPreviousVersion(), id)
+		target := updated.Msg.GetConnection().GetTarget()
+		if target.GetUrl() != "https://example.com/toshi-hooks" || target.GetSecret() != "" || target.GetUpdatedBy() == "" {
+			t.Fatalf("the target is url %q, secret %q, set by %q", target.GetUrl(), target.GetSecret(), target.GetUpdatedBy())
 		}
+		cleared, err := wide.Connection().UpdateConnection(ctx, connect.NewRequest(&workspacev1.UpdateConnectionRequest{
+			Connection: &workspacev1.Connection{Id: id},
+			UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"target"}},
+		}))
+		if err != nil {
+			t.Fatalf("UpdateConnection clear: %v", err)
+		}
+		if cleared.Msg.GetConnection().GetTarget() != nil {
+			t.Fatalf("clearing the target left %v", cleared.Msg.GetConnection().GetTarget())
+		}
+		_, err = wide.Connection().UpdateConnection(ctx, connect.NewRequest(&workspacev1.UpdateConnectionRequest{
+			Connection: &workspacev1.Connection{Id: id},
+			UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"name"}},
+		}))
+		if connect.CodeOf(err) != connect.CodeInvalidArgument {
+			t.Fatalf("UpdateConnection with mask name: %v, want INVALID_ARGUMENT", err)
+		}
+
 		deliveries, err := wide.Connection().ListConnectionDeliveries(ctx, connect.NewRequest(&workspacev1.ListConnectionDeliveriesRequest{ConnectionId: id}))
 		if err != nil {
 			t.Fatalf("ListConnectionDeliveries: %v", err)
@@ -374,13 +393,6 @@ func TestIntegration(t *testing.T) {
 		_, err = wide.Connection().GetConnectionDelivery(ctx, connect.NewRequest(&workspacev1.GetConnectionDeliveryRequest{Id: "missing"}))
 		if connect.CodeOf(err) != connect.CodeNotFound {
 			t.Fatalf("GetConnectionDelivery of a missing id: %v, want NOT_FOUND", err)
-		}
-		hooks, err := wide.Hook().ListHooks(ctx, connect.NewRequest(&workspacev1.ListHooksRequest{Type: workspacev1.HookType_HOOK_TYPE_TRANSFORM}))
-		if err != nil {
-			t.Fatalf("ListHooks: %v", err)
-		}
-		if len(hooks.Msg.GetVersions()) != 0 {
-			t.Fatalf("a workspace without a transform has %d versions", len(hooks.Msg.GetVersions()))
 		}
 		if _, err := wide.Role().ListRoles(ctx, connect.NewRequest(&workspacev1.ListRolesRequest{})); err != nil {
 			t.Fatalf("ListRoles: %v", err)
@@ -600,106 +612,50 @@ func TestIntegration(t *testing.T) {
 		}
 	})
 
-	// An outside product from the catalog: turning it on without accepting
-	// its access is ACCESS_NOT_ACCEPTED, and once it is turned off its
-	// installation token's calls are PRODUCT_TURNED_OFF.
+	// A product turned off in the workspace's settings: its calls are
+	// refused with PRODUCT_UNAVAILABLE and the cause, and discovery says it
+	// is not available.
 	t.Run("ProductError", func(t *testing.T) {
-		enable := &workspacev1.UpdateProductRequest{Id: probeProduct, Enabled: proto.Bool(true)}
-		_, err := wide.Product().UpdateProduct(ctx, connect.NewRequest(enable))
+		if _, err := wide.Product().UpdateProduct(ctx, connect.NewRequest(&workspacev1.UpdateProductRequest{
+			Id: "previews", Enabled: proto.Bool(false),
+		})); err != nil {
+			t.Fatalf("turn previews off: %v", err)
+		}
+		defer func() {
+			if _, err := wide.Product().UpdateProduct(ctx, connect.NewRequest(&workspacev1.UpdateProductRequest{
+				Id: "previews", Enabled: proto.Bool(true),
+			})); err != nil {
+				t.Errorf("turn previews on: %v", err)
+			}
+		}()
+
+		_, err := wide.Workload().Sandboxes().CreatePreviewShareLink(ctx, &workspacev1.CreatePreviewShareLinkRequest{SandboxId: "missing"})
 		var refused *toshi.ProductError
 		if !errors.As(err, &refused) {
-			t.Fatalf("UpdateProduct without the access: got %v, want a ProductError", err)
+			t.Fatalf("a previews call while previews is off: got %v, want a ProductError", err)
 		}
-		if refused.Product != probeProduct || refused.Reason != toshi.ReasonAccessNotAccepted ||
-			strings.Join(refused.Access, ",") != "projects.read" || connect.CodeOf(err) != connect.CodeFailedPrecondition {
-			t.Fatalf("UpdateProduct without the access: %+v", refused)
+		if refused.Product != "previews" || refused.Reason != toshi.ReasonProductUnavailable ||
+			refused.Cause != toshi.CauseWorkspace || connect.CodeOf(err) != connect.CodeFailedPrecondition {
+			t.Fatalf("a previews call while previews is off: %+v", refused)
 		}
-		t.Logf("refused: %s %s %v", refused.Product, refused.Reason, refused.Access)
 
-		enable.AcceptedAccess = refused.Access
-		res, err := wide.Product().UpdateProduct(ctx, connect.NewRequest(enable))
+		discovered, err := wide.Discovery().Discover(ctx, connect.NewRequest(&workspacev1.DiscoverRequest{}))
 		if err != nil {
-			t.Fatalf("UpdateProduct with the access: %v", err)
+			t.Fatalf("Discover: %v", err)
 		}
-		installed, err := toshi.New(
-			toshi.WithServer(baseURL),
-			toshi.WithToken(res.Msg.GetInstallationToken()),
-			toshi.WithCAFile(caPath),
-		)
-		if err != nil {
-			t.Fatalf("New with the installation token: %v", err)
+		seen := false
+		for _, product := range discovered.Msg.GetProducts() {
+			if product.GetId() == "previews" {
+				seen = true
+				if product.GetAvailable() {
+					t.Fatal("Discover says previews is available while the workspace's setting turns it off")
+				}
+			}
 		}
-		list := connect.NewRequest(&workspacev1.ListProjectsRequest{})
-		if _, err := installed.Project().ListProjects(ctx, list); err != nil {
-			t.Fatalf("ListProjects with the installation token: %v", err)
-		}
-
-		if _, err := wide.Product().UpdateProduct(ctx, connect.NewRequest(&workspacev1.UpdateProductRequest{
-			Id: probeProduct, Enabled: proto.Bool(false),
-		})); err != nil {
-			t.Fatalf("turn the product off: %v", err)
-		}
-		_, err = installed.Project().ListProjects(ctx, connect.NewRequest(&workspacev1.ListProjectsRequest{}))
-		refused = nil
-		if !errors.As(err, &refused) || refused.Product != probeProduct || refused.Reason != toshi.ReasonProductTurnedOff {
-			t.Fatalf("ListProjects with the token of a product turned off: got %v, want PRODUCT_TURNED_OFF for %s", err, probeProduct)
-		}
-		t.Logf("refused: %s %s %s", refused.Product, refused.Reason, refused.Feature)
-
-		if _, err := wide.Product().RemoveProduct(ctx, connect.NewRequest(&workspacev1.RemoveProductRequest{Id: probeProduct})); err != nil {
-			t.Fatalf("RemoveProduct: %v", err)
+		if !seen {
+			t.Fatal("Discover lists no previews product")
 		}
 	})
-}
-
-// writeCatalog signs a catalog index that lists one outside product,
-// probeProduct, asking for projects.read, with a new Ed25519 key, and returns
-// the [[catalog.sources]] that trusts it.
-func writeCatalog(t *testing.T, bin, dir string) string {
-	t.Helper()
-	pub, priv, err := ed25519.GenerateKey(rand.Reader)
-	if err != nil {
-		t.Fatal(err)
-	}
-	der, err := x509.MarshalPKCS8PrivateKey(priv)
-	if err != nil {
-		t.Fatal(err)
-	}
-	keyPath := filepath.Join(dir, "catalog-key.pem")
-	writePEM(t, keyPath, "PRIVATE KEY", der, 0o600)
-
-	// The key's ID is its JWK thumbprint (RFC 7638).
-	jwk := fmt.Sprintf(`{"crv":"Ed25519","kty":"OKP","x":%q}`, base64.RawURLEncoding.EncodeToString(pub))
-	sum := sha256.Sum256([]byte(jwk))
-	index, err := json.Marshal(map[string]any{
-		"format": 1,
-		"key_id": base64.RawURLEncoding.EncodeToString(sum[:]),
-		"entries": []map[string]any{{
-			"id":          probeProduct,
-			"name":        "SDK probe",
-			"publisher":   "sdk",
-			"version":     "1.0.0",
-			"description": "An outside product the SDK's integration test installs.",
-			"access":      []string{"projects.read"},
-			"runs":        map[string]string{"where": "publisher"},
-			"docs":        "https://example.com/sdk-probe",
-		}},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	indexPath := filepath.Join(dir, "catalog.json")
-	if err := os.WriteFile(indexPath, index, 0o600); err != nil {
-		t.Fatal(err)
-	}
-	run(t, nil, bin, "product", "catalog", "sign", indexPath, "--key", keyPath)
-	return fmt.Sprintf(`
-[[catalog.sources]]
-name = "sdk"
-path = %q
-keys = ["ed25519:%s"]
-publishers = ["sdk"]
-`, indexPath, base64.StdEncoding.EncodeToString(pub))
 }
 
 func secretNames(secrets []*workspacev1.Secret) map[string]bool {
@@ -796,7 +752,7 @@ func writePEM(t *testing.T, path, blockType string, der []byte, mode os.FileMode
 }
 
 // writeConfig writes the control plane's configuration.
-func writeConfig(t *testing.T, path, dir string, servePort, fakePort int, certPath, keyPath, appKeyPath, webhookPath, operatorPath, localKeyPath, catalog string) {
+func writeConfig(t *testing.T, path, dir string, servePort, fakePort int, certPath, keyPath, appKeyPath, webhookPath, operatorPath, localKeyPath string) {
 	t.Helper()
 	dataDir := filepath.Join(dir, "data")
 	if err := os.MkdirAll(dataDir, 0o700); err != nil {
@@ -823,7 +779,7 @@ app_id = 1
 base_url = "http://127.0.0.1:%d"
 private_key_file = %q
 webhook_secret_file = %q
-`, servePort, dataDir, certPath, keyPath, operatorPath, localKeyPath, fakePort, appKeyPath, webhookPath) + catalog
+`, servePort, dataDir, certPath, keyPath, operatorPath, localKeyPath, fakePort, appKeyPath, webhookPath)
 	if err := os.WriteFile(path, []byte(config), 0o600); err != nil {
 		t.Fatal(err)
 	}

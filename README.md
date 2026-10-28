@@ -45,7 +45,7 @@ under `Workload().Services()`, and the calls that span the three on
 `Project()`, `Secret()`, `Webhook()`, `Display()`, `Channel()`, `Recording()`,
 `Volume()`, `Artifact()`, `ArtifactUpload()`, `Workspace()`, `HostJob()`,
 `Host()`, `Token()`, `AuditEvent()`, `Filler()`, `StorageProvider()`,
-`Product()`, `Discovery()`, `Connection()`, `Hook()`, `Role()`, `Trigger()`,
+`Product()`, `Discovery()`, `Connection()`, `Role()`, `Trigger()`,
 `Account()` and `Image()` return the generated Connect clients of their
 service; `Channel()` is `ChannelClient`, which spells out the service's
 calls.
@@ -159,17 +159,14 @@ for job, err := range client.Workload().Jobs().All(ctx, &workspacev1.ListJobsReq
 
 ## Products that are off
 
-A call for a product that is off for the workspace, or that turns on an
-outside product without accepting the access it asks for, fails with a
+A call for a product that is off for the workspace fails with a
 `*toshi.ProductError`. `errors.As` finds it on the error of any call, `Wait`,
 the watches and `Execute` included, and `connect.CodeOf` reads its code as
 before. It has the product's ID (`Product`), the `Reason`
-(`ReasonProductNotInstalled`, `ReasonProductDisabled`,
-`ReasonProductNotEntitled`, `ReasonProductTurnedOff` or
-`ReasonAccessNotAccepted`), the setting that turns the product on
-(`Feature`, such as `runners.enabled`), how far a product the deployment
-disables has wound down (`State`) and, for `ReasonAccessNotAccepted`, the
-access to accept (`Access`).
+(`ReasonProductUnavailable`), the input that turned the product off
+(`Cause`: `CauseBuild`, `CauseOperator`, `CausePlan` or `CauseWorkspace`)
+and, for a product the deployment turns off, how far it has wound down
+(`State`: `no_new_work`, `draining` or `stopped`).
 
 <!-- ExampleProductError -->
 ```go
@@ -178,20 +175,14 @@ client, err := toshi.New()
 if err != nil {
 	log.Fatal(err)
 }
-// Turning an outside product on installs it, and the API asks the
-// caller to accept the access it wants first.
+// Turn a product on for the workspace.
 enable := &workspacev1.UpdateProductRequest{Id: "acme_ci", Enabled: proto.Bool(true)}
 _, err = client.Product().UpdateProduct(ctx, connect.NewRequest(enable))
 var refused *toshi.ProductError
-if errors.As(err, &refused) && refused.Reason == toshi.ReasonAccessNotAccepted {
-	fmt.Println(refused.Product, refused.Reason, refused.Access)
-	// Accept exactly the access the product asks for.
-	enable.AcceptedAccess = refused.Access
-	_, err = client.Product().UpdateProduct(ctx, connect.NewRequest(enable))
-}
 if errors.As(err, &refused) {
-	// Off for the workspace: say which product and why.
-	fmt.Println(refused.Product, refused.Reason, refused.Feature)
+	// Off for the workspace: which product, the input that turns it
+	// off, and, for the deployment's config, how far it has wound down.
+	fmt.Println(refused.Product, refused.Cause, refused.State)
 	return
 }
 if err != nil {
@@ -205,8 +196,10 @@ A refusal that is not a product's comes back as a `*toshi.RefusalError`,
 which `errors.As` finds, with the API's `Code` as before and a `Reason` from
 `RefusalReason`: `ReasonImageInUse` when an image a workload or a revision
 still uses cannot be deleted, `ReasonPlanExcludesImages` when the plan has no
-images, `ReasonLastIdentity` when the caller's last identity cannot be
-unlinked, and so on for images, volumes, roles and display sessions.
+images, `ReasonImageNotReady` when a job, a sandbox or a service revision
+names a workspace image with no ready version, `ReasonLastIdentity` when the
+caller's last identity cannot be unlinked, and so on for images, volumes,
+roles and display sessions.
 
 `Workload().Services().Rollback` asks the revision's registry whether it
 still serves the revision's image before it selects it, and refuses with

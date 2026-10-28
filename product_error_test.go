@@ -3,7 +3,6 @@ package toshi_test
 import (
 	"context"
 	"errors"
-	"slices"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -87,52 +86,35 @@ func refusal(t *testing.T, code connect.Code, domain, reason string, metadata ma
 func TestProductErrorFields(t *testing.T) {
 	for _, tc := range []struct {
 		name     string
-		code     connect.Code
-		reason   string
 		metadata map[string]string
 		want     toshi.ProductError
 	}{
 		{
-			name:     "not installed",
-			code:     connect.CodeUnimplemented,
-			reason:   "PRODUCT_NOT_INSTALLED",
-			metadata: map[string]string{"product": "runners", "feature": "runners.enabled", "switch": "build"},
-			want:     toshi.ProductError{Product: "runners", Reason: toshi.ReasonProductNotInstalled, Feature: "runners.enabled", Code: connect.CodeUnimplemented},
+			name:     "build",
+			metadata: map[string]string{"product": "runners", "cause": "build"},
+			want:     toshi.ProductError{Product: "runners", Reason: toshi.ReasonProductUnavailable, Cause: toshi.CauseBuild, Code: connect.CodeFailedPrecondition},
 		},
 		{
-			name:     "disabled while draining",
-			code:     connect.CodeFailedPrecondition,
-			reason:   "PRODUCT_DISABLED",
-			metadata: map[string]string{"product": "runners", "feature": "runners.enabled", "switch": "deployment", "state": "draining"},
-			want:     toshi.ProductError{Product: "runners", Reason: toshi.ReasonProductDisabled, Feature: "runners.enabled", State: "draining", Code: connect.CodeFailedPrecondition},
+			name:     "operator while draining",
+			metadata: map[string]string{"product": "runners", "cause": "operator", "state": "draining"},
+			want:     toshi.ProductError{Product: "runners", Reason: toshi.ReasonProductUnavailable, Cause: toshi.CauseOperator, State: "draining", Code: connect.CodeFailedPrecondition},
 		},
 		{
-			name:     "not entitled",
-			code:     connect.CodePermissionDenied,
-			reason:   "PRODUCT_NOT_ENTITLED",
-			metadata: map[string]string{"product": "runners", "feature": "runners.enabled", "switch": "entitlement"},
-			want:     toshi.ProductError{Product: "runners", Reason: toshi.ReasonProductNotEntitled, Feature: "runners.enabled", Code: connect.CodePermissionDenied},
+			name:     "plan",
+			metadata: map[string]string{"product": "images", "cause": "plan"},
+			want:     toshi.ProductError{Product: "images", Reason: toshi.ReasonProductUnavailable, Cause: toshi.CausePlan, Code: connect.CodeFailedPrecondition},
 		},
 		{
-			name:     "turned off",
-			code:     connect.CodeFailedPrecondition,
-			reason:   "PRODUCT_TURNED_OFF",
-			metadata: map[string]string{"product": "acme_ci", "feature": "acme_ci.enabled", "switch": "workspace"},
-			want:     toshi.ProductError{Product: "acme_ci", Reason: toshi.ReasonProductTurnedOff, Feature: "acme_ci.enabled", Code: connect.CodeFailedPrecondition},
-		},
-		{
-			name:     "access not accepted",
-			code:     connect.CodeFailedPrecondition,
-			reason:   "ACCESS_NOT_ACCEPTED",
-			metadata: map[string]string{"product": "acme_ci", "access": "projects.read,secrets.read"},
-			want:     toshi.ProductError{Product: "acme_ci", Reason: toshi.ReasonAccessNotAccepted, Access: []string{"projects.read", "secrets.read"}, Code: connect.CodeFailedPrecondition},
+			name:     "workspace",
+			metadata: map[string]string{"product": "acme_ci", "cause": "workspace"},
+			want:     toshi.ProductError{Product: "acme_ci", Reason: toshi.ReasonProductUnavailable, Cause: toshi.CauseWorkspace, Code: connect.CodeFailedPrecondition},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			tt := toshitest.New(t)
 			toshitest.On(tt, workspacev1connect.ProjectServiceListProjectsProcedure,
 				func(context.Context, *workspacev1.ListProjectsRequest) (*workspacev1.ListProjectsResponse, error) {
-					return nil, refusal(t, tc.code, "toshi.run", tc.reason, tc.metadata)
+					return nil, refusal(t, connect.CodeFailedPrecondition, "toshi.run", "PRODUCT_UNAVAILABLE", tc.metadata)
 				})
 			_, err := tt.Client().Project().ListProjects(context.Background(), connect.NewRequest(&workspacev1.ListProjectsRequest{}))
 			var pe *toshi.ProductError
@@ -141,11 +123,11 @@ func TestProductErrorFields(t *testing.T) {
 			}
 			got := *pe
 			got.Err = nil
-			if got.Product != tc.want.Product || got.Reason != tc.want.Reason || got.Feature != tc.want.Feature ||
-				got.State != tc.want.State || !slices.Equal(got.Access, tc.want.Access) || got.Code != tc.want.Code {
+			if got.Product != tc.want.Product || got.Reason != tc.want.Reason || got.Cause != tc.want.Cause ||
+				got.State != tc.want.State || got.Code != tc.want.Code {
 				t.Fatalf("ProductError %+v, want %+v", got, tc.want)
 			}
-			if connect.CodeOf(err) != tc.code || pe.Error() != err.Error() {
+			if connect.CodeOf(err) != connect.CodeFailedPrecondition || pe.Error() != err.Error() {
 				t.Fatalf("code %v, text %q", connect.CodeOf(err), err.Error())
 			}
 		})
@@ -155,7 +137,7 @@ func TestProductErrorFields(t *testing.T) {
 func TestOtherErrorsAreNotProductErrors(t *testing.T) {
 	for name, cerr := range map[string]*connect.Error{
 		"no detail":    connect.NewError(connect.CodeFailedPrecondition, errors.New("refused")),
-		"other domain": refusal(t, connect.CodeFailedPrecondition, "example.com", "PRODUCT_TURNED_OFF", map[string]string{"product": "x"}),
+		"other domain": refusal(t, connect.CodeFailedPrecondition, "example.com", "PRODUCT_UNAVAILABLE", map[string]string{"product": "x", "cause": "build"}),
 		"other reason": refusal(t, connect.CodeFailedPrecondition, "toshi.run", "QUOTA_EXCEEDED", map[string]string{"product": "x"}),
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -175,13 +157,13 @@ func TestOtherErrorsAreNotProductErrors(t *testing.T) {
 
 func TestProductErrorThroughWaitWatchAndExecute(t *testing.T) {
 	turnedOff := func(t *testing.T) error {
-		return refusal(t, connect.CodeFailedPrecondition, "toshi.run", "PRODUCT_TURNED_OFF",
-			map[string]string{"product": "acme_ci", "feature": "acme_ci.enabled", "switch": "workspace"})
+		return refusal(t, connect.CodeFailedPrecondition, "toshi.run", "PRODUCT_UNAVAILABLE",
+			map[string]string{"product": "acme_ci", "cause": "workspace"})
 	}
 	check := func(t *testing.T, err error) {
 		t.Helper()
 		var pe *toshi.ProductError
-		if !errors.As(err, &pe) || pe.Reason != toshi.ReasonProductTurnedOff || pe.Product != "acme_ci" {
+		if !errors.As(err, &pe) || pe.Reason != toshi.ReasonProductUnavailable || pe.Cause != toshi.CauseWorkspace || pe.Product != "acme_ci" {
 			t.Fatalf("no ProductError in %v", err)
 		}
 	}
