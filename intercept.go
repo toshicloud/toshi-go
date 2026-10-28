@@ -146,33 +146,33 @@ func isString(fd protoreflect.FieldDescriptor) bool {
 	return fd != nil && fd.Kind() == protoreflect.StringKind && !fd.IsList() && !fd.IsMap()
 }
 
-// productInterceptor turns a product's refusal into a *ProductError, on a
-// unary call's error and on what a stream's Receive returns.
-type productInterceptor struct{}
+// refusalInterceptor turns the API's refusal into this package's typed
+// error, on a unary call's error and on what a stream's Receive returns.
+type refusalInterceptor struct{}
 
-func (productInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
+func (refusalInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
 	return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
 		res, err := next(ctx, req)
-		return res, asProductError(err)
+		return res, asTypedError(err)
 	}
 }
 
-func (productInterceptor) WrapStreamingClient(next connect.StreamingClientFunc) connect.StreamingClientFunc {
+func (refusalInterceptor) WrapStreamingClient(next connect.StreamingClientFunc) connect.StreamingClientFunc {
 	return func(ctx context.Context, spec connect.Spec) connect.StreamingClientConn {
-		return productClientConn{next(ctx, spec)}
+		return refusalClientConn{next(ctx, spec)}
 	}
 }
 
-func (productInterceptor) WrapStreamingHandler(next connect.StreamingHandlerFunc) connect.StreamingHandlerFunc {
+func (refusalInterceptor) WrapStreamingHandler(next connect.StreamingHandlerFunc) connect.StreamingHandlerFunc {
 	return next
 }
 
-// productClientConn turns a product's refusal on Receive into a
-// *ProductError.
-type productClientConn struct {
+// refusalClientConn turns the API's refusal on Receive into this package's
+// typed error.
+type refusalClientConn struct {
 	connect.StreamingClientConn
 }
 
-func (c productClientConn) Receive(msg any) error {
-	return asProductError(c.StreamingClientConn.Receive(msg))
+func (c refusalClientConn) Receive(msg any) error {
+	return asTypedError(c.StreamingClientConn.Receive(msg))
 }

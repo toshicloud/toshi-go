@@ -143,6 +143,7 @@ type ChannelClient interface {
 	GetLink(context.Context, *connect.Request[workspacev1.GetLinkRequest]) (*connect.Response[workspacev1.GetLinkResponse], error)
 	SendChannelMessage(context.Context, *connect.Request[workspacev1.SendChannelMessageRequest]) (*connect.Response[workspacev1.SendChannelMessageResponse], error)
 	TailChannelMessages(context.Context, *connect.Request[workspacev1.TailChannelMessagesRequest]) (*connect.ServerStreamForClient[workspacev1.TailChannelMessagesResponse], error)
+	ReplayChannelMessage(context.Context, *connect.Request[workspacev1.ReplayChannelMessageRequest]) (*connect.Response[workspacev1.ReplayChannelMessageResponse], error)
 }
 
 // New builds a Client from opts, then from the environment. It returns an
@@ -189,7 +190,7 @@ func New(opts ...Option) (*Client, error) {
 	api := headerClient{next: httpClient, token: token, userAgent: userAgent(cfg.product)}
 	scope := scopeInterceptor{project: cfg.project, environment: cfg.environment}
 	retry := retryInterceptor{policy: policy}
-	interceptors := append(cfg.interceptors, scope, retry, productInterceptor{})
+	interceptors := append(cfg.interceptors, scope, retry, refusalInterceptor{})
 	options := append([]connect.ClientOption{connect.WithInterceptors(interceptors...)}, cfg.connectOptions...)
 
 	client := &Client{

@@ -50,6 +50,7 @@ var procedureRetryClass = map[string]retryClass{
 	workspacev1connect.ChannelServiceListChannelsProcedure:                     retryRead,
 	workspacev1connect.ChannelServiceListForwardsProcedure:                     retryRead,
 	workspacev1connect.ChannelServiceRevokeChannelConnectTokenProcedure:        retryNone,
+	workspacev1connect.ChannelServiceReplayChannelMessageProcedure:             retryNone,
 	workspacev1connect.ChannelServiceSendChannelMessageProcedure:               retryKeyed,
 	workspacev1connect.ChannelServiceSetChannelPolicyProcedure:                 retryNone,
 	workspacev1connect.ChannelServiceTailChannelMessagesProcedure:              retryNone,

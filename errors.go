@@ -94,8 +94,24 @@ const (
 	ReasonAccessNotAccepted ProductReason = "ACCESS_NOT_ACCEPTED"
 )
 
-// productErrorDomain is the ErrorInfo domain of a product's refusal.
-const productErrorDomain = "toshi.run"
+// RollbackImageReason says why a rollback's check of the revision's image
+// refused it: the reason of the refusal's ErrorInfo detail.
+type RollbackImageReason string
+
+// The reasons RollbackService's image check refuses a rollback.
+const (
+	// ReasonImageNotServed: the revision's registry answered that it does
+	// not serve the revision's image digest. The code is
+	// CodeFailedPrecondition.
+	ReasonImageNotServed RollbackImageReason = "IMAGE_NOT_SERVED"
+	// ReasonImageCheckFailed: the registry could not be reached, refused
+	// the login or failed, so whether it serves the digest is not known.
+	// The code is CodeFailedPrecondition.
+	ReasonImageCheckFailed RollbackImageReason = "IMAGE_CHECK_FAILED"
+)
+
+// errorInfoDomain is the ErrorInfo domain of the API's refusals.
+const errorInfoDomain = "toshi.run"
 
 // ProductError is the API's refusal of a call for a product: one that is off
 // for the workspace, or an outside product whose access the call did not
@@ -125,6 +141,22 @@ func (e *ProductError) Error() string { return e.Err.Error() }
 // Unwrap returns the API's error.
 func (e *ProductError) Unwrap() error { return e.Err }
 
+// RollbackImageError is RollbackService's refusal by the check of the
+// revision's image: the registry does not serve it, or could not say.
+// errors.As finds it on the error of the call. It wraps the *connect.Error,
+// so connect.CodeOf reads its code as before.
+type RollbackImageError struct {
+	Reason RollbackImageReason
+	Code   connect.Code
+	Err    *connect.Error
+}
+
+// Error returns the API's message.
+func (e *RollbackImageError) Error() string { return e.Err.Error() }
+
+// Unwrap returns the API's error.
+func (e *RollbackImageError) Unwrap() error { return e.Err }
+
 // asProductError returns err as a *ProductError when it is a product's
 // refusal, and err unchanged otherwise.
 func asProductError(err error) error {
@@ -141,7 +173,7 @@ func asProductError(err error) error {
 			continue
 		}
 		reason, domain, metadata, ok := decodeErrorInfo(d.Bytes())
-		if !ok || domain != productErrorDomain {
+		if !ok || domain != errorInfoDomain {
 			continue
 		}
 		switch r := ProductReason(reason); r {
@@ -161,6 +193,41 @@ func asProductError(err error) error {
 		}
 	}
 	return err
+}
+
+// asRollbackImageError returns err as a *RollbackImageError when it is a
+// rollback's refusal by the check of the revision's image, and err unchanged
+// otherwise.
+func asRollbackImageError(err error) error {
+	var cerr *connect.Error
+	if err == nil || !errors.As(err, &cerr) {
+		return err
+	}
+	var already *RollbackImageError
+	if errors.As(err, &already) {
+		return err
+	}
+	for _, d := range cerr.Details() {
+		if d.Type() != "google.rpc.ErrorInfo" {
+			continue
+		}
+		reason, domain, _, ok := decodeErrorInfo(d.Bytes())
+		if !ok || domain != errorInfoDomain {
+			continue
+		}
+		switch r := RollbackImageReason(reason); r {
+		case ReasonImageNotServed, ReasonImageCheckFailed:
+			return &RollbackImageError{Reason: r, Code: cerr.Code(), Err: cerr}
+		}
+	}
+	return err
+}
+
+// asTypedError returns err as one of this package's typed errors when the
+// API's ErrorInfo detail names a reason it knows, and err unchanged
+// otherwise.
+func asTypedError(err error) error {
+	return asRollbackImageError(asProductError(err))
 }
 
 // decodeErrorInfo reads a google.rpc.ErrorInfo message: reason (1), domain

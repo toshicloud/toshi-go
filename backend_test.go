@@ -371,8 +371,8 @@ func TestRetryMapCoversEveryProcedure(t *testing.T) {
 			}
 		}
 	}
-	if seen != 195 {
-		t.Errorf("checked %d procedures, want 195", seen)
+	if seen != 196 {
+		t.Errorf("checked %d procedures, want 196", seen)
 	}
 }
 
