@@ -396,3 +396,40 @@ func (s ServicesClient) AllRuns(ctx context.Context, req *workspacev1.ListServic
 		return resp.Runs
 	})
 }
+
+// ListRevisions returns a service's revisions, oldest first.
+func (s ServicesClient) ListRevisions(ctx context.Context, req *workspacev1.ListServiceRevisionsRequest) (*workspacev1.ListServiceRevisionsResponse, error) {
+	resp, err := s.call.svc.ListServiceRevisions(ctx, connect.NewRequest(req))
+	if err != nil {
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
+// GetRevision returns one revision of a service.
+func (s ServicesClient) GetRevision(ctx context.Context, req *workspacev1.GetServiceRevisionRequest) (*workspacev1.GetServiceRevisionResponse, error) {
+	resp, err := s.call.svc.GetServiceRevision(ctx, connect.NewRequest(req))
+	if err != nil {
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
+// Rollback selects a revision the service already has as its current one.
+func (s ServicesClient) Rollback(ctx context.Context, req *workspacev1.RollbackServiceRequest) (*workspacev1.RollbackServiceResponse, error) {
+	resp, err := s.call.svc.RollbackService(ctx, connect.NewRequest(req))
+	if err != nil {
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
+// ListActivations returns a service's activations, oldest first: each
+// selection of a revision and what came of it.
+func (s ServicesClient) ListActivations(ctx context.Context, req *workspacev1.ListServiceActivationsRequest) (*workspacev1.ListServiceActivationsResponse, error) {
+	resp, err := s.call.svc.ListServiceActivations(ctx, connect.NewRequest(req))
+	if err != nil {
+		return nil, err
+	}
+	return resp.Msg, nil
+}

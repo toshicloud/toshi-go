@@ -47,6 +47,7 @@ type Client struct {
 	connection      workspacev1connect.ConnectionServiceClient
 	hook            workspacev1connect.HookServiceClient
 	role            workspacev1connect.RoleServiceClient
+	trigger         workspacev1connect.TriggerServiceClient
 
 	retry RetryPolicy
 }
@@ -122,6 +123,9 @@ func (c *Client) Hook() workspacev1connect.HookServiceClient { return c.hook }
 // Role is the RoleService client.
 func (c *Client) Role() workspacev1connect.RoleServiceClient { return c.role }
 
+// Trigger is the TriggerService client.
+func (c *Client) Trigger() workspacev1connect.TriggerServiceClient { return c.trigger }
+
 // ChannelClient is the calls of ChannelService.
 type ChannelClient interface {
 	CreateChannel(context.Context, *connect.Request[workspacev1.CreateChannelRequest]) (*connect.Response[workspacev1.CreateChannelResponse], error)
@@ -137,6 +141,8 @@ type ChannelClient interface {
 	DeleteChannel(context.Context, *connect.Request[workspacev1.DeleteChannelRequest]) (*connect.Response[workspacev1.DeleteChannelResponse], error)
 	ListForwards(context.Context, *connect.Request[workspacev1.ListForwardsRequest]) (*connect.Response[workspacev1.ListForwardsResponse], error)
 	GetLink(context.Context, *connect.Request[workspacev1.GetLinkRequest]) (*connect.Response[workspacev1.GetLinkResponse], error)
+	SendChannelMessage(context.Context, *connect.Request[workspacev1.SendChannelMessageRequest]) (*connect.Response[workspacev1.SendChannelMessageResponse], error)
+	TailChannelMessages(context.Context, *connect.Request[workspacev1.TailChannelMessagesRequest]) (*connect.ServerStreamForClient[workspacev1.TailChannelMessagesResponse], error)
 }
 
 // New builds a Client from opts, then from the environment. It returns an
@@ -208,6 +214,7 @@ func New(opts ...Option) (*Client, error) {
 		connection:      workspacev1connect.NewConnectionServiceClient(api, server, options...),
 		hook:            workspacev1connect.NewHookServiceClient(api, server, options...),
 		role:            workspacev1connect.NewRoleServiceClient(api, server, options...),
+		trigger:         workspacev1connect.NewTriggerServiceClient(api, server, options...),
 		retry:           policy,
 	}
 	workload := newWorkloadClient(client, workspacev1connect.NewWorkloadServiceClient(api, server, options...))

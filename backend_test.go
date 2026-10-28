@@ -354,6 +354,7 @@ func TestRetryMapCoversEveryProcedure(t *testing.T) {
 		workspacev1.File_toshi_workspace_v1_connections_proto,
 		workspacev1.File_toshi_workspace_v1_hooks_proto,
 		workspacev1.File_toshi_workspace_v1_roles_proto,
+		workspacev1.File_toshi_workspace_v1_triggers_proto,
 	}
 	seen := 0
 	for _, file := range files {
@@ -370,8 +371,8 @@ func TestRetryMapCoversEveryProcedure(t *testing.T) {
 			}
 		}
 	}
-	if seen != 178 {
-		t.Errorf("checked %d procedures, want 178", seen)
+	if seen != 195 {
+		t.Errorf("checked %d procedures, want 195", seen)
 	}
 }
 

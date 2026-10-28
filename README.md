@@ -45,9 +45,9 @@ under `Workload().Services()`, and the calls that span the three on
 `Project()`, `Secret()`, `Webhook()`, `Display()`, `Channel()`, `Recording()`,
 `Volume()`, `Artifact()`, `ArtifactUpload()`, `Workspace()`, `HostJob()`,
 `Host()`, `Token()`, `AuditEvent()`, `Filler()`, `StorageProvider()`,
-`Product()`, `Discovery()`, `Connection()`, `Hook()` and `Role()` return the
-generated Connect clients of their service; `Channel()` is `ChannelClient`,
-which spells out the service's calls.
+`Product()`, `Discovery()`, `Connection()`, `Hook()`, `Role()` and
+`Trigger()` return the generated Connect clients of their service; `Channel()`
+is `ChannelClient`, which spells out the service's calls.
 
 `New` reads the server and token from `TOSHI_SERVER` and `TOSHI_TOKEN`
 (or the file `TOSHI_TOKEN_FILE` names), and an extra CA bundle from
