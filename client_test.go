@@ -270,6 +270,10 @@ func TestClientMethodsCallTheirServices(t *testing.T) {
 	check("Discovery", err)
 	_, err = client.Connection().SetConnectionTransform(ctx, connect.NewRequest(&workspacev1.SetConnectionTransformRequest{ConnectionId: "con-1", Version: 1}))
 	check("Connection", err)
+	_, err = client.Account().GetAccount(ctx, connect.NewRequest(&workspacev1.GetAccountRequest{}))
+	check("Account", err)
+	_, err = client.Image().ListImages(ctx, connect.NewRequest(&workspacev1.ListImagesRequest{}))
+	check("Image", err)
 	_, err = client.Hook().ListHooks(ctx, connect.NewRequest(&workspacev1.ListHooksRequest{}))
 	check("Hook", err)
 	_, err = client.Role().ListRoles(ctx, connect.NewRequest(&workspacev1.ListRolesRequest{}))
@@ -298,6 +302,8 @@ func TestClientMethodsCallTheirServices(t *testing.T) {
 		workspacev1connect.ProductServiceListProductsProcedure,
 		workspacev1connect.DiscoveryServiceDiscoverProcedure,
 		workspacev1connect.ConnectionServiceSetConnectionTransformProcedure,
+		workspacev1connect.AccountServiceGetAccountProcedure,
+		workspacev1connect.ImageServiceListImagesProcedure,
 		workspacev1connect.HookServiceListHooksProcedure,
 		workspacev1connect.RoleServiceListRolesProcedure,
 		workspacev1connect.TriggerServiceListTriggersProcedure,

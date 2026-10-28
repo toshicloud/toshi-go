@@ -45,9 +45,10 @@ under `Workload().Services()`, and the calls that span the three on
 `Project()`, `Secret()`, `Webhook()`, `Display()`, `Channel()`, `Recording()`,
 `Volume()`, `Artifact()`, `ArtifactUpload()`, `Workspace()`, `HostJob()`,
 `Host()`, `Token()`, `AuditEvent()`, `Filler()`, `StorageProvider()`,
-`Product()`, `Discovery()`, `Connection()`, `Hook()`, `Role()` and
-`Trigger()` return the generated Connect clients of their service; `Channel()`
-is `ChannelClient`, which spells out the service's calls.
+`Product()`, `Discovery()`, `Connection()`, `Hook()`, `Role()`, `Trigger()`,
+`Account()` and `Image()` return the generated Connect clients of their
+service; `Channel()` is `ChannelClient`, which spells out the service's
+calls.
 
 `New` reads the server and token from `TOSHI_SERVER` and `TOSHI_TOKEN`
 (or the file `TOSHI_TOKEN_FILE` names), and an extra CA bundle from
@@ -75,6 +76,9 @@ token. There is no default project or environment: set them with
   `Workload().Jobs().WatchOutput`, resume after a dropped connection from the
   last cursor or byte offset received. A cursor the server no longer keeps
   ends the watch with `OUT_OF_RANGE`.
+- An event's payload says what happened: a trigger's `TriggerResult` names the
+  key's `Reason` and its workload, and with `process_exited` or `setup_failed`
+  it carries the sandbox's `ExitCode` and `Message`.
 - `Workload().Sandboxes().Execute` starts a command and returns a `Process`:
   write its standard input to `Stdin`, read `Stdout` and `Stderr` at the
   same time, and `Wait` returns an `*ExitError` for a non-zero exit or a
@@ -195,11 +199,17 @@ if err != nil {
 }
 ```
 
-## A rollback the registry refuses
+## Refusals with a reason
+
+A refusal that is not a product's comes back as a `*toshi.RefusalError`,
+which `errors.As` finds, with the API's `Code` as before and a `Reason` from
+`RefusalReason`: `ReasonImageInUse` when an image a workload or a revision
+still uses cannot be deleted, `ReasonPlanExcludesImages` when the plan has no
+images, `ReasonLastIdentity` when the caller's last identity cannot be
+unlinked, and so on for images, volumes, roles and display sessions.
 
 `Workload().Services().Rollback` asks the revision's registry whether it
-still serves the revision's image before it selects it. A refusal is a
-`*toshi.RollbackImageError`, which `errors.As` finds: its `Reason` is
+still serves the revision's image before it selects it, and refuses with
 `ReasonImageNotServed` when the registry answered that it does not serve the
 image, or `ReasonImageCheckFailed` when it could not say. A revision's
 `ImageCheck` carries the last answer: its `Outcome`, the registry's `Status`

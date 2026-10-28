@@ -94,20 +94,52 @@ const (
 	ReasonAccessNotAccepted ProductReason = "ACCESS_NOT_ACCEPTED"
 )
 
-// RollbackImageReason says why a rollback's check of the revision's image
-// refused it: the reason of the refusal's ErrorInfo detail.
-type RollbackImageReason string
+// RefusalReason says why the API refused a call and named the reason: the
+// reason of the refusal's ErrorInfo detail.
+type RefusalReason string
 
-// The reasons RollbackService's image check refuses a rollback.
+// The reasons the API names on a refusal that is not a product's, which
+// ProductError covers.
 const (
+	// ReasonDisplayInputNotEnabled: the Windows VM takes no display input.
+	// The code is CodeFailedPrecondition.
+	ReasonDisplayInputNotEnabled RefusalReason = "DISPLAY_INPUT_NOT_ENABLED"
+	// ReasonImageBuildInProgress: the image already has a build running.
+	// The code is CodeFailedPrecondition.
+	ReasonImageBuildInProgress RefusalReason = "IMAGE_BUILD_IN_PROGRESS"
+	// ReasonImageCheckFailed: the registry of the revision's image could
+	// not be reached, refused the login or failed, so whether it serves the
+	// digest is not known. The code is CodeFailedPrecondition.
+	ReasonImageCheckFailed RefusalReason = "IMAGE_CHECK_FAILED"
+	// ReasonImageInUse: a workload or a service revision still uses the
+	// image. The code is CodeFailedPrecondition.
+	ReasonImageInUse RefusalReason = "IMAGE_IN_USE"
+	// ReasonImageNameTaken: another live image of the workspace has the
+	// name. The code is CodeAlreadyExists.
+	ReasonImageNameTaken RefusalReason = "IMAGE_NAME_TAKEN"
 	// ReasonImageNotServed: the revision's registry answered that it does
 	// not serve the revision's image digest. The code is
 	// CodeFailedPrecondition.
-	ReasonImageNotServed RollbackImageReason = "IMAGE_NOT_SERVED"
-	// ReasonImageCheckFailed: the registry could not be reached, refused
-	// the login or failed, so whether it serves the digest is not known.
+	ReasonImageNotServed RefusalReason = "IMAGE_NOT_SERVED"
+	// ReasonLastIdentity: the call would remove the caller's last identity.
 	// The code is CodeFailedPrecondition.
-	ReasonImageCheckFailed RollbackImageReason = "IMAGE_CHECK_FAILED"
+	ReasonLastIdentity RefusalReason = "LAST_IDENTITY"
+	// ReasonLastMember: the call would remove the workspace's last member.
+	// The code is CodeFailedPrecondition.
+	ReasonLastMember RefusalReason = "LAST_MEMBER"
+	// ReasonLastOwner: the call would leave the workspace without an owner.
+	// The code is CodeFailedPrecondition.
+	ReasonLastOwner RefusalReason = "LAST_OWNER"
+	// ReasonPermissionMissing: a role change names a permission the caller
+	// does not hold where the role applies. The code is
+	// CodePermissionDenied.
+	ReasonPermissionMissing RefusalReason = "PERMISSION_MISSING"
+	// ReasonPlanExcludesImages: the workspace's plan does not include
+	// images. The code is CodeFailedPrecondition.
+	ReasonPlanExcludesImages RefusalReason = "PLAN_EXCLUDES_IMAGES"
+	// ReasonToshiLicensedWindows: a Windows job Toshi licenses opens no
+	// display session. The code is CodeFailedPrecondition.
+	ReasonToshiLicensedWindows RefusalReason = "TOSHI_LICENSED_WINDOWS"
 )
 
 // errorInfoDomain is the ErrorInfo domain of the API's refusals.
@@ -141,21 +173,22 @@ func (e *ProductError) Error() string { return e.Err.Error() }
 // Unwrap returns the API's error.
 func (e *ProductError) Unwrap() error { return e.Err }
 
-// RollbackImageError is RollbackService's refusal by the check of the
-// revision's image: the registry does not serve it, or could not say.
-// errors.As finds it on the error of the call. It wraps the *connect.Error,
-// so connect.CodeOf reads its code as before.
-type RollbackImageError struct {
-	Reason RollbackImageReason
+// RefusalError is the API's refusal that names a reason: a rollback whose
+// revision's image is gone, an image still in use, a plan without images, a
+// last identity, and the rest of RefusalReason. errors.As finds it on the
+// error of the call. It wraps the *connect.Error, so connect.CodeOf reads
+// its code as before.
+type RefusalError struct {
+	Reason RefusalReason
 	Code   connect.Code
 	Err    *connect.Error
 }
 
 // Error returns the API's message.
-func (e *RollbackImageError) Error() string { return e.Err.Error() }
+func (e *RefusalError) Error() string { return e.Err.Error() }
 
 // Unwrap returns the API's error.
-func (e *RollbackImageError) Unwrap() error { return e.Err }
+func (e *RefusalError) Unwrap() error { return e.Err }
 
 // asProductError returns err as a *ProductError when it is a product's
 // refusal, and err unchanged otherwise.
@@ -195,15 +228,14 @@ func asProductError(err error) error {
 	return err
 }
 
-// asRollbackImageError returns err as a *RollbackImageError when it is a
-// rollback's refusal by the check of the revision's image, and err unchanged
-// otherwise.
-func asRollbackImageError(err error) error {
+// asRefusalError returns err as a *RefusalError when it is a refusal that
+// names a reason this package knows, and err unchanged otherwise.
+func asRefusalError(err error) error {
 	var cerr *connect.Error
 	if err == nil || !errors.As(err, &cerr) {
 		return err
 	}
-	var already *RollbackImageError
+	var already *RefusalError
 	if errors.As(err, &already) {
 		return err
 	}
@@ -215,9 +247,12 @@ func asRollbackImageError(err error) error {
 		if !ok || domain != errorInfoDomain {
 			continue
 		}
-		switch r := RollbackImageReason(reason); r {
-		case ReasonImageNotServed, ReasonImageCheckFailed:
-			return &RollbackImageError{Reason: r, Code: cerr.Code(), Err: cerr}
+		switch r := RefusalReason(reason); r {
+		case ReasonDisplayInputNotEnabled, ReasonImageBuildInProgress, ReasonImageCheckFailed,
+			ReasonImageInUse, ReasonImageNameTaken, ReasonImageNotServed, ReasonLastIdentity,
+			ReasonLastMember, ReasonLastOwner, ReasonPermissionMissing, ReasonPlanExcludesImages,
+			ReasonToshiLicensedWindows:
+			return &RefusalError{Reason: r, Code: cerr.Code(), Err: cerr}
 		}
 	}
 	return err
@@ -227,7 +262,7 @@ func asRollbackImageError(err error) error {
 // API's ErrorInfo detail names a reason it knows, and err unchanged
 // otherwise.
 func asTypedError(err error) error {
-	return asRollbackImageError(asProductError(err))
+	return asRefusalError(asProductError(err))
 }
 
 // decodeErrorInfo reads a google.rpc.ErrorInfo message: reason (1), domain

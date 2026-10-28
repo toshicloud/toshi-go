@@ -10,6 +10,16 @@ import (
 // and the coverage test fails when one is neither, so a new procedure is a
 // decision and not a surprise at a caller.
 var hookOnly = map[string]bool{
+	// AccountService
+	workspacev1connect.AccountServiceGetAccountProcedure:     true,
+	workspacev1connect.AccountServiceListIdentitiesProcedure: true,
+	workspacev1connect.AccountServiceUnlinkIdentityProcedure: true,
+	// ImageService
+	workspacev1connect.ImageServiceCreateImageProcedure: true,
+	workspacev1connect.ImageServiceBuildImageProcedure:  true,
+	workspacev1connect.ImageServiceGetImageProcedure:    true,
+	workspacev1connect.ImageServiceListImagesProcedure:  true,
+	workspacev1connect.ImageServiceDeleteImageProcedure: true,
 	// WorkloadService
 	workspacev1connect.WorkloadServiceUpdateJobProcedure:              true,
 	workspacev1connect.WorkloadServiceDeleteJobProcedure:              true,
@@ -109,9 +119,11 @@ var hookOnly = map[string]bool{
 	workspacev1connect.RecordingServiceListRecordingShareLinksProcedure:  true,
 	workspacev1connect.RecordingServiceRevokeRecordingShareLinkProcedure: true,
 	// VolumeService
-	workspacev1connect.VolumeServiceListVolumesProcedure:  true,
-	workspacev1connect.VolumeServiceAttachVolumeProcedure: true,
-	workspacev1connect.VolumeServiceDetachVolumeProcedure: true,
+	workspacev1connect.VolumeServiceListVolumesProcedure:        true,
+	workspacev1connect.VolumeServiceAttachVolumeProcedure:       true,
+	workspacev1connect.VolumeServiceDetachVolumeProcedure:       true,
+	workspacev1connect.VolumeServiceListVolumeVersionsProcedure: true,
+	workspacev1connect.VolumeServiceRestoreVolumeProcedure:      true,
 	// ArtifactUploadService
 	workspacev1connect.ArtifactUploadServiceReserveUploadProcedure:  true,
 	workspacev1connect.ArtifactUploadServiceCompleteUploadProcedure: true,

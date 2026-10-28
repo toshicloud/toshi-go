@@ -32,6 +32,9 @@ const (
 // retry returns the session with no token, so the caller opens another one
 // itself.
 var procedureRetryClass = map[string]retryClass{
+	workspacev1connect.AccountServiceGetAccountProcedure:                       retryRead,
+	workspacev1connect.AccountServiceListIdentitiesProcedure:                   retryRead,
+	workspacev1connect.AccountServiceUnlinkIdentityProcedure:                   retryNone,
 	workspacev1connect.ArtifactServiceGetArtifactDownloadURLProcedure:          retryRead,
 	workspacev1connect.ArtifactServiceGetArtifactProcedure:                     retryRead,
 	workspacev1connect.ArtifactServiceListArtifactsProcedure:                   retryRead,
@@ -82,6 +85,11 @@ var procedureRetryClass = map[string]retryClass{
 	workspacev1connect.HookServiceListHooksProcedure:                           retryRead,
 	workspacev1connect.HookServiceTestHookProcedure:                            retryNone,
 	workspacev1connect.HookServiceUploadHookVersionProcedure:                   retryNone,
+	workspacev1connect.ImageServiceBuildImageProcedure:                         retryNone,
+	workspacev1connect.ImageServiceCreateImageProcedure:                        retryNone,
+	workspacev1connect.ImageServiceDeleteImageProcedure:                        retryNone,
+	workspacev1connect.ImageServiceGetImageProcedure:                           retryRead,
+	workspacev1connect.ImageServiceListImagesProcedure:                         retryRead,
 	workspacev1connect.HostJobServiceCancelHostJobProcedure:                    retryNone,
 	workspacev1connect.HostJobServiceGetHostJobDebugAccessProcedure:            retryRead,
 	workspacev1connect.HostJobServiceGetHostJobFailureProcedure:                retryRead,
@@ -158,6 +166,8 @@ var procedureRetryClass = map[string]retryClass{
 	workspacev1connect.VolumeServiceAttachVolumeProcedure:                      retryNone,
 	workspacev1connect.VolumeServiceDetachVolumeProcedure:                      retryNone,
 	workspacev1connect.VolumeServiceListVolumesProcedure:                       retryRead,
+	workspacev1connect.VolumeServiceListVolumeVersionsProcedure:                retryRead,
+	workspacev1connect.VolumeServiceRestoreVolumeProcedure:                     retryNone,
 	workspacev1connect.WebhookServiceCreateWebhookEndpointProcedure:            retryKeyed,
 	workspacev1connect.WebhookServiceDeleteWebhookEndpointProcedure:            retryKeyed,
 	workspacev1connect.WebhookServiceGetWebhookEndpointProcedure:               retryRead,
