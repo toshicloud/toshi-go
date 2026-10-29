@@ -48,7 +48,7 @@ lists and revokes the share links of a service's provided names.
 `Volume()`, `Artifact()`, `ArtifactUpload()`, `Workspace()`, `HostJob()`,
 `Host()`, `Token()`, `AuditEvent()`, `Filler()`, `StorageProvider()`,
 `Product()`, `Discovery()`, `Connection()`, `Role()`, `Trigger()`,
-`Grant()`, `Account()` and `Image()` return the generated Connect clients of
+`Grant()`, `Domain()`, `Account()` and `Image()` return the generated Connect clients of
 their service; `Channel()` is `ChannelClient`, which spells out the service's
 calls.
 
