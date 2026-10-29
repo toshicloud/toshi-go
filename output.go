@@ -78,7 +78,7 @@ func (w *OutputWatch) retry(cause error) error {
 	if w.attempt >= w.call.client.maxReconnects() {
 		return cause
 	}
-	if err := sleepBackoff(w.ctx, w.call.client.retry, w.attempt); err != nil {
+	if err := sleepBackoff(w.ctx, w.call.client.retry, w.attempt, 0); err != nil {
 		return err
 	}
 	w.attempt++

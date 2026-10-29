@@ -16,7 +16,8 @@ import (
 // token as a bearer token and the User-Agent. It sets them on a copy below
 // every interceptor, so no interceptor sees the token. It never sets
 // Toshi-Tenant. When there is no token it sends nothing and returns a
-// CodeUnauthenticated error, which connect-go passes on with its code.
+// CodeUnauthenticated error, which connect-go passes on with its code. It
+// records an HTTP 429 answer and its Retry-After for the retry interceptor.
 type headerClient struct {
 	next      connect.HTTPClient
 	token     func(context.Context) (string, error)
@@ -35,7 +36,13 @@ func (h headerClient) Do(req *http.Request) (*http.Response, error) {
 	out.Header = req.Header.Clone()
 	out.Header.Set("Authorization", "Bearer "+token)
 	out.Header.Set("User-Agent", h.userAgent)
-	return h.next.Do(&out)
+	resp, err := h.next.Do(&out)
+	if err == nil && resp.StatusCode == http.StatusTooManyRequests {
+		if tooMany, ok := req.Context().Value(tooManyKey{}).(*tooManyRequests); ok {
+			tooMany.seen, tooMany.retryAfter = true, resp.Header.Get("Retry-After")
+		}
+	}
+	return resp, err
 }
 
 // userAgent returns the User-Agent the client sends, with product in front

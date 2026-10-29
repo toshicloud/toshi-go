@@ -6,10 +6,14 @@ import (
 	"encoding/hex"
 	"errors"
 	"io"
+	"math"
 	mathrand "math/rand/v2"
+	"strconv"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
+	"google.golang.org/protobuf/encoding/protowire"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
@@ -300,15 +304,17 @@ func (r retryInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
 		}
 		var last error
 		for attempt := 0; attempt < attempts; attempt++ {
-			resp, err := next(ctx, req)
+			tooMany := &tooManyRequests{}
+			resp, err := next(context.WithValue(ctx, tooManyKey{}, tooMany), req)
 			if err == nil {
 				return resp, nil
 			}
 			last = err
-			if attempt == attempts-1 || !retryable(err) {
+			wait, waited := serverWait(err, tooMany)
+			if attempt == attempts-1 || (!retryable(err) && !waited) {
 				return nil, err
 			}
-			if err := sleepBackoff(ctx, r.policy, attempt); err != nil {
+			if err := sleepBackoff(ctx, r.policy, attempt, wait); err != nil {
 				return nil, err
 			}
 		}
@@ -330,14 +336,21 @@ func retryable(err error) bool {
 	return connect.CodeOf(err) == connect.CodeUnavailable || errors.Is(err, io.ErrUnexpectedEOF)
 }
 
-// sleepBackoff waits a full-jitter delay for attempt, or returns the
-// context's error when ctx ends first.
-func sleepBackoff(ctx context.Context, policy RetryPolicy, attempt int) error {
-	delay := backoff(policy, attempt)
+// sleepBackoff waits a full-jitter delay for attempt, or the server's wait
+// when that is longer, never more than MaxBackoff. It returns the context's
+// error when ctx ends first.
+func sleepBackoff(ctx context.Context, policy RetryPolicy, attempt int, wait time.Duration) error {
+	delay := min(max(backoff(policy, attempt), wait), policy.MaxBackoff)
 	if delay <= 0 {
 		return nil
 	}
-	timer := time.NewTimer(delay)
+	return retrySleep(ctx, delay)
+}
+
+// retrySleep waits d, or returns the context's error when ctx ends first.
+// Tests replace it so that a wait costs no time.
+var retrySleep = func(ctx context.Context, d time.Duration) error {
+	timer := time.NewTimer(d)
 	defer timer.Stop()
 	select {
 	case <-ctx.Done():
@@ -346,6 +359,120 @@ func sleepBackoff(ctx context.Context, policy RetryPolicy, attempt int) error {
 		return nil
 	}
 }
+
+// serverWait returns how long the server asked the client to wait before a
+// retry, and whether it asked. A RESOURCE_EXHAUSTED refusal names the wait
+// in a google.rpc.RetryInfo detail and in its Retry-After metadata, the
+// detail winning when both are there; the API's rate limit sends both, with
+// the same whole seconds. Such a refusal is retried only when it names a
+// wait: one without, such as a plan's limit, does not pass on a retry. An
+// HTTP 429, which connect-go reports as CodeUnavailable without its headers,
+// names it in the Retry-After the HTTP client recorded in tooMany. Every
+// other error names none.
+func serverWait(err error, tooMany *tooManyRequests) (time.Duration, bool) {
+	var cerr *connect.Error
+	if !errors.As(err, &cerr) {
+		return 0, false
+	}
+	switch cerr.Code() {
+	case connect.CodeResourceExhausted:
+		for _, d := range cerr.Details() {
+			if d.Type() != "google.rpc.RetryInfo" {
+				continue
+			}
+			if wait, ok := decodeRetryInfo(d.Bytes()); ok {
+				return wait, true
+			}
+		}
+		return parseRetryAfter(cerr.Meta().Get("Retry-After"))
+	case connect.CodeUnavailable:
+		if tooMany != nil && tooMany.seen {
+			return parseRetryAfter(tooMany.retryAfter)
+		}
+	}
+	return 0, false
+}
+
+// parseRetryAfter reads a Retry-After value of whole seconds, the form the
+// API sends. A date or anything else names no wait.
+func parseRetryAfter(v string) (time.Duration, bool) {
+	secs, err := strconv.ParseInt(strings.TrimSpace(v), 10, 64)
+	if err != nil || secs < 0 || secs > int64(math.MaxInt64/time.Second) {
+		return 0, false
+	}
+	return time.Duration(secs) * time.Second, true
+}
+
+// decodeRetryInfo reads google.rpc.RetryInfo's retry_delay (1), a
+// google.protobuf.Duration of seconds (1) and nanos (2).
+func decodeRetryInfo(b []byte) (time.Duration, bool) {
+	var delay []byte
+	found := false
+	for len(b) > 0 {
+		num, typ, n := protowire.ConsumeTag(b)
+		if n < 0 {
+			return 0, false
+		}
+		b = b[n:]
+		if num == 1 && typ == protowire.BytesType {
+			v, n := protowire.ConsumeBytes(b)
+			if n < 0 {
+				return 0, false
+			}
+			delay, found = v, true
+			b = b[n:]
+			continue
+		}
+		n = protowire.ConsumeFieldValue(num, typ, b)
+		if n < 0 {
+			return 0, false
+		}
+		b = b[n:]
+	}
+	if !found {
+		return 0, false
+	}
+	var secs, nanos int64
+	for len(delay) > 0 {
+		num, typ, n := protowire.ConsumeTag(delay)
+		if n < 0 {
+			return 0, false
+		}
+		delay = delay[n:]
+		if typ == protowire.VarintType && (num == 1 || num == 2) {
+			v, n := protowire.ConsumeVarint(delay)
+			if n < 0 {
+				return 0, false
+			}
+			if num == 1 {
+				secs = int64(v)
+			} else {
+				nanos = int64(int32(v))
+			}
+			delay = delay[n:]
+			continue
+		}
+		n = protowire.ConsumeFieldValue(num, typ, delay)
+		if n < 0 {
+			return 0, false
+		}
+		delay = delay[n:]
+	}
+	if secs < 0 || nanos < 0 || secs > int64(math.MaxInt64/time.Second)-1 {
+		return 0, false
+	}
+	return time.Duration(secs)*time.Second + time.Duration(nanos), true
+}
+
+// tooManyRequests records an HTTP 429 answer to one try of a unary call
+// and its Retry-After. The retry interceptor puts one in each try's context
+// under tooManyKey, and headerClient fills it.
+type tooManyRequests struct {
+	seen       bool
+	retryAfter string
+}
+
+type tooManyKey struct{}
 
 // backoff returns a random delay in [0, min(MaxBackoff, InitialBackoff times
 // two to the attempt)].
