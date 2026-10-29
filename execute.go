@@ -79,6 +79,17 @@ func lost(err error) bool {
 	return retryable(err) || errors.Is(err, io.EOF)
 }
 
+// ExecuteCommand runs a command in a running sandbox with its standard input
+// closed, for a caller that does not stream a request, and returns the
+// stream of its output. It fills an empty request key, so a retry with the
+// same request replays the execution rather than starting another. The
+// client does not retry the stream: a lost one comes back as a stream error,
+// and CancelExecution stops the execution.
+func (s SandboxesClient) ExecuteCommand(ctx context.Context, req *workspacev1.ExecuteCommandRequest) (*connect.ServerStreamForClient[workspacev1.ExecuteCommandResponse], error) {
+	fillRequestKey(req)
+	return s.call.svc.ExecuteCommand(ctx, connect.NewRequest(req))
+}
+
 // Process is one execution started by Execute. Standard input is written to
 // Stdin, stdout and stderr are read at the same time, and Wait returns its
 // exit as an error.

@@ -94,6 +94,17 @@ func (w WorkloadClient) GetOperation(ctx context.Context, req *workspacev1.GetOp
 	return resp.Msg, nil
 }
 
+// AnswerPrompt answers a prompt a job, a sandbox or a service waits on, as
+// the person the token acts for, and returns the event that records the
+// answer and who gave it.
+func (w WorkloadClient) AnswerPrompt(ctx context.Context, req *workspacev1.AnswerPromptRequest) (*workspacev1.AnswerPromptResponse, error) {
+	resp, err := w.call.svc.AnswerPrompt(ctx, connect.NewRequest(req))
+	if err != nil {
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
 // Create creates a job and returns it.
 func (j JobsClient) Create(ctx context.Context, req *workspacev1.CreateJobRequest) (*workspacev1.CreateJobResponse, error) {
 	resp, err := j.call.svc.CreateJob(ctx, connect.NewRequest(req))
@@ -428,6 +439,46 @@ func (s ServicesClient) Rollback(ctx context.Context, req *workspacev1.RollbackS
 // selection of a revision and what came of it.
 func (s ServicesClient) ListActivations(ctx context.Context, req *workspacev1.ListServiceActivationsRequest) (*workspacev1.ListServiceActivationsResponse, error) {
 	resp, err := s.call.svc.ListServiceActivations(ctx, connect.NewRequest(req))
+	if err != nil {
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
+// CreateServiceShareLink mints a share link for one of a service's provided
+// names, the front channel's unless the request names another http channel.
+// The link is in this answer only.
+func (s ServicesClient) CreateServiceShareLink(ctx context.Context, req *workspacev1.CreateServiceShareLinkRequest) (*workspacev1.CreateServiceShareLinkResponse, error) {
+	resp, err := s.call.svc.CreateServiceShareLink(ctx, connect.NewRequest(req))
+	if err != nil {
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
+// ListServiceShareLinks returns a service's share links, for all of its
+// channels, the oldest first and never with the link itself.
+func (s ServicesClient) ListServiceShareLinks(ctx context.Context, req *workspacev1.ListServiceShareLinksRequest) (*workspacev1.ListServiceShareLinksResponse, error) {
+	resp, err := s.call.svc.ListServiceShareLinks(ctx, connect.NewRequest(req))
+	if err != nil {
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
+// AllServiceShareLinks yields every share link ListServiceShareLinks
+// returns, the oldest first and never with the link itself, following the
+// page token from one page to the next.
+func (s ServicesClient) AllServiceShareLinks(ctx context.Context, req *workspacev1.ListServiceShareLinksRequest) iter.Seq2[*workspacev1.ServiceShareLink, error] {
+	return Paginate(ctx, req, s.call.svc.ListServiceShareLinks, func(resp *workspacev1.ListServiceShareLinksResponse) []*workspacev1.ServiceShareLink {
+		return resp.ShareLinks
+	})
+}
+
+// RevokeServiceShareLink revokes a service's share link: it admits no
+// device again and its open connections end.
+func (s ServicesClient) RevokeServiceShareLink(ctx context.Context, req *workspacev1.RevokeServiceShareLinkRequest) (*workspacev1.RevokeServiceShareLinkResponse, error) {
+	resp, err := s.call.svc.RevokeServiceShareLink(ctx, connect.NewRequest(req))
 	if err != nil {
 		return nil, err
 	}
