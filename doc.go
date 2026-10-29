@@ -8,8 +8,9 @@
 // go.toshicloud.io/api. The client sends its token as a bearer
 // token and fills an empty project and environment from WithScope. It
 // retries reads, and the writes that take a request_key, when the server is
-// unavailable or the connection drops; every other error,
-// RESOURCE_EXHAUSTED included, goes back to the caller.
+// unavailable, the connection drops or a RESOURCE_EXHAUSTED refusal names a
+// wait, waiting at least that long; every other error goes back to the
+// caller.
 //
 // The methods add what a single call does not: Run creates a job and follows
 // it as a JobRun, the Wait methods ask again until the answer is final, the

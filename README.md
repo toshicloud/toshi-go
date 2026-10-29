@@ -62,8 +62,12 @@ token. There is no default project or environment: set them with
   server is unavailable or the connection drops, with capped, jittered
   backoff that stops when the context ends. An empty `request_key` is
   filled in before the first try and kept for every retry, so the server
-  answers a retry with the first result. `RESOURCE_EXHAUSTED` and every
-  other error go back to the caller.
+  answers a retry with the first result. A `RESOURCE_EXHAUSTED` refusal
+  that names a wait (a `google.rpc.RetryInfo` detail, else `Retry-After`),
+  as the API's rate limit does, is retried the same way after that wait or
+  the backoff, whichever is longer, never longer than `MaxBackoff`; so is an
+  HTTP 429 with a `Retry-After`. Any other `RESOURCE_EXHAUSTED`, such as a
+  plan's limit, and every other error go back to the caller.
 - `OpenDisplaySession`, the `SecretService` writes and `Execute` are never
   retried.
 - `Run` creates a job and follows it: write nothing, read `Stdout` and
