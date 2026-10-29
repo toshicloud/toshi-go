@@ -183,6 +183,7 @@ var procedureRetryClass = map[string]retryClass{
 	workspacev1connect.TriggerServiceUpdateTriggerProcedure:                 retryKeyed,
 	workspacev1connect.VolumeServiceAttachVolumeProcedure:                   retryNone,
 	workspacev1connect.VolumeServiceDetachVolumeProcedure:                   retryNone,
+	workspacev1connect.VolumeServiceGetVolumeProcedure:                      retryRead,
 	workspacev1connect.VolumeServiceListVolumesProcedure:                    retryRead,
 	workspacev1connect.VolumeServiceListVolumeVersionsProcedure:             retryRead,
 	workspacev1connect.VolumeServiceRestoreVolumeProcedure:                  retryNone,
@@ -247,6 +248,7 @@ var procedureRetryClass = map[string]retryClass{
 	workspacev1connect.WorkloadServiceWatchSandboxesProcedure:               retryNone,
 	workspacev1connect.WorkloadServiceWatchServicesProcedure:                retryNone,
 	workspacev1connect.WorkloadServiceWatchTelemetryProcedure:               retryNone,
+	workspacev1connect.WorkspaceServiceAssignSeatProcedure:                  retryNone,
 	workspacev1connect.WorkspaceServiceCreateBillingPortalSessionProcedure:  retryNone,
 	workspacev1connect.WorkspaceServiceCreateCheckoutSessionProcedure:       retryNone,
 	workspacev1connect.WorkspaceServiceGetQueueTimesProcedure:               retryRead,
@@ -259,7 +261,9 @@ var procedureRetryClass = map[string]retryClass{
 	workspacev1connect.WorkspaceServiceGetWorkspaceStatementProcedure:       retryRead,
 	workspacev1connect.WorkspaceServiceListEgressIPsProcedure:               retryRead,
 	workspacev1connect.WorkspaceServiceListPlansProcedure:                   retryRead,
+	workspacev1connect.WorkspaceServiceListSeatsProcedure:                   retryRead,
 	workspacev1connect.WorkspaceServiceListWorkspacesProcedure:              retryRead,
+	workspacev1connect.WorkspaceServiceRemoveSeatProcedure:                  retryNone,
 }
 
 // normalizeRetry fills zero backoff values with the defaults and leaves
