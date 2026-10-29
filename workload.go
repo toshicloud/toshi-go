@@ -222,6 +222,25 @@ func (s SandboxesClient) Delete(ctx context.Context, req *workspacev1.DeleteSand
 	return resp.Msg, nil
 }
 
+// Start queues a run of a sandbox on its kept VM and returns the sandbox.
+func (s SandboxesClient) Start(ctx context.Context, req *workspacev1.StartSandboxRequest) (*workspacev1.StartSandboxResponse, error) {
+	resp, err := s.call.svc.StartSandbox(ctx, connect.NewRequest(req))
+	if err != nil {
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
+// Stop ends a sandbox's run and every execution in it, keeps its VM and
+// returns the sandbox, back in created.
+func (s SandboxesClient) Stop(ctx context.Context, req *workspacev1.StopSandboxRequest) (*workspacev1.StopSandboxResponse, error) {
+	resp, err := s.call.svc.StopSandbox(ctx, connect.NewRequest(req))
+	if err != nil {
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
 // CancelExecution stops an execution.
 func (s SandboxesClient) CancelExecution(ctx context.Context, req *workspacev1.CancelExecutionRequest) (*workspacev1.CancelExecutionResponse, error) {
 	resp, err := s.call.svc.CancelExecution(ctx, connect.NewRequest(req))

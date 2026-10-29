@@ -26,6 +26,8 @@ var hookOnly = map[string]bool{
 	workspacev1connect.WorkloadServiceDeleteJobProcedure:              true,
 	workspacev1connect.WorkloadServiceUpdateSandboxProcedure:          true,
 	workspacev1connect.WorkloadServiceDeleteSandboxProcedure:          true,
+	workspacev1connect.WorkloadServiceStartSandboxProcedure:           true,
+	workspacev1connect.WorkloadServiceStopSandboxProcedure:            true,
 	workspacev1connect.WorkloadServiceCancelExecutionProcedure:        true,
 	workspacev1connect.WorkloadServiceExportEventsProcedure:           true,
 	workspacev1connect.WorkloadServiceWatchTelemetryProcedure:         true,
@@ -226,6 +228,13 @@ var hookOnly = map[string]bool{
 	workspacev1connect.GrantServiceUpdateGrantProcedure:  true,
 	workspacev1connect.GrantServiceRevokeGrantProcedure:  true,
 	workspacev1connect.GrantServiceLeaveGrantProcedure:   true,
+	// DomainService
+	workspacev1connect.DomainServiceCreateDomainProcedure: true,
+	workspacev1connect.DomainServiceGetDomainProcedure:    true,
+	workspacev1connect.DomainServiceListDomainsProcedure:  true,
+	workspacev1connect.DomainServiceVerifyDomainProcedure: true,
+	workspacev1connect.DomainServiceIssueDomainProcedure:  true,
+	workspacev1connect.DomainServiceDeleteDomainProcedure: true,
 	// WorkspaceService
 	workspacev1connect.WorkspaceServiceGetWorkspaceProcedure:               true,
 	workspacev1connect.WorkspaceServiceListWorkspacesProcedure:             true,

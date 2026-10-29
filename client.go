@@ -50,6 +50,7 @@ type Client struct {
 	role            workspacev1connect.RoleServiceClient
 	trigger         workspacev1connect.TriggerServiceClient
 	grant           workspacev1connect.GrantServiceClient
+	domain          workspacev1connect.DomainServiceClient
 
 	retry RetryPolicy
 }
@@ -133,6 +134,9 @@ func (c *Client) Trigger() workspacev1connect.TriggerServiceClient { return c.tr
 
 // Grant is the GrantService client.
 func (c *Client) Grant() workspacev1connect.GrantServiceClient { return c.grant }
+
+// Domain is the DomainService client.
+func (c *Client) Domain() workspacev1connect.DomainServiceClient { return c.domain }
 
 // ChannelClient is the calls of ChannelService.
 type ChannelClient interface {
@@ -226,6 +230,7 @@ func New(opts ...Option) (*Client, error) {
 		role:            workspacev1connect.NewRoleServiceClient(api, server, options...),
 		trigger:         workspacev1connect.NewTriggerServiceClient(api, server, options...),
 		grant:           workspacev1connect.NewGrantServiceClient(api, server, options...),
+		domain:          workspacev1connect.NewDomainServiceClient(api, server, options...),
 		retry:           policy,
 	}
 	workload := newWorkloadClient(client, workspacev1connect.NewWorkloadServiceClient(api, server, options...))

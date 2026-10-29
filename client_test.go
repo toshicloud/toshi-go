@@ -278,6 +278,8 @@ func TestClientMethodsCallTheirServices(t *testing.T) {
 	check("Role", err)
 	_, err = client.Trigger().ListTriggers(ctx, connect.NewRequest(&workspacev1.ListTriggersRequest{}))
 	check("Trigger", err)
+	_, err = client.Domain().ListDomains(ctx, connect.NewRequest(&workspacev1.ListDomainsRequest{}))
+	check("Domain", err)
 
 	want := []string{
 		workspacev1connect.WorkloadServiceCreateJobProcedure,
@@ -304,6 +306,7 @@ func TestClientMethodsCallTheirServices(t *testing.T) {
 		workspacev1connect.ImageServiceListImagesProcedure,
 		workspacev1connect.RoleServiceListRolesProcedure,
 		workspacev1connect.TriggerServiceListTriggersProcedure,
+		workspacev1connect.DomainServiceListDomainsProcedure,
 	}
 	calls := tt.Calls()
 	if len(calls) != len(want) {

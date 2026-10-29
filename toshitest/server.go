@@ -41,6 +41,7 @@ type services struct {
 	workspacev1connect.UnimplementedRoleServiceHandler
 	workspacev1connect.UnimplementedTriggerServiceHandler
 	workspacev1connect.UnimplementedGrantServiceHandler
+	workspacev1connect.UnimplementedDomainServiceHandler
 }
 
 // start mounts every service over TLS with HTTP/2.
@@ -101,6 +102,8 @@ func (f *Fake) start() {
 	path, handler = workspacev1connect.NewTriggerServiceHandler(service, options)
 	mount(path, handler)
 	path, handler = workspacev1connect.NewGrantServiceHandler(service, options)
+	mount(path, handler)
+	path, handler = workspacev1connect.NewDomainServiceHandler(service, options)
 	mount(path, handler)
 
 	server := httptest.NewUnstartedServer(mux)
