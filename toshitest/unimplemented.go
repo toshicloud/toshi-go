@@ -134,6 +134,7 @@ var hookOnly = map[string]bool{
 	workspacev1connect.RecordingServiceRevokeRecordingShareLinkProcedure: true,
 	// VolumeService
 	workspacev1connect.VolumeServiceListVolumesProcedure:        true,
+	workspacev1connect.VolumeServiceGetVolumeProcedure:          true,
 	workspacev1connect.VolumeServiceAttachVolumeProcedure:       true,
 	workspacev1connect.VolumeServiceDetachVolumeProcedure:       true,
 	workspacev1connect.VolumeServiceListVolumeVersionsProcedure: true,
@@ -249,4 +250,7 @@ var hookOnly = map[string]bool{
 	workspacev1connect.WorkspaceServiceCreateCheckoutSessionProcedure:      true,
 	workspacev1connect.WorkspaceServiceCreateBillingPortalSessionProcedure: true,
 	workspacev1connect.WorkspaceServiceGetVersionProcedure:                 true,
+	workspacev1connect.WorkspaceServiceListSeatsProcedure:                  true,
+	workspacev1connect.WorkspaceServiceAssignSeatProcedure:                 true,
+	workspacev1connect.WorkspaceServiceRemoveSeatProcedure:                 true,
 }
