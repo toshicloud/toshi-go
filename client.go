@@ -49,6 +49,7 @@ type Client struct {
 	image           workspacev1connect.ImageServiceClient
 	role            workspacev1connect.RoleServiceClient
 	trigger         workspacev1connect.TriggerServiceClient
+	grant           workspacev1connect.GrantServiceClient
 
 	retry RetryPolicy
 }
@@ -129,6 +130,9 @@ func (c *Client) Role() workspacev1connect.RoleServiceClient { return c.role }
 
 // Trigger is the TriggerService client.
 func (c *Client) Trigger() workspacev1connect.TriggerServiceClient { return c.trigger }
+
+// Grant is the GrantService client.
+func (c *Client) Grant() workspacev1connect.GrantServiceClient { return c.grant }
 
 // ChannelClient is the calls of ChannelService.
 type ChannelClient interface {
@@ -221,6 +225,7 @@ func New(opts ...Option) (*Client, error) {
 		image:           workspacev1connect.NewImageServiceClient(api, server, options...),
 		role:            workspacev1connect.NewRoleServiceClient(api, server, options...),
 		trigger:         workspacev1connect.NewTriggerServiceClient(api, server, options...),
+		grant:           workspacev1connect.NewGrantServiceClient(api, server, options...),
 		retry:           policy,
 	}
 	workload := newWorkloadClient(client, workspacev1connect.NewWorkloadServiceClient(api, server, options...))

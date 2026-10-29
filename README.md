@@ -41,13 +41,15 @@ for _, job := range jobs.GetJobs() {
 `Workload().Jobs()`, a sandbox's under `Workload().Sandboxes()`, a service's
 under `Workload().Services()`, and the calls that span the three on
 `Workload()` itself (`WatchEvents`, `ListEvents`, `GetOperation`,
-`WaitOperation`).
+`AnswerPrompt`, `WaitOperation`). `Workload().Sandboxes().ExecuteCommand`
+runs a command without standard input, and `Workload().Services()` mints,
+lists and revokes the share links of a service's provided names.
 `Project()`, `Secret()`, `Webhook()`, `Display()`, `Channel()`, `Recording()`,
 `Volume()`, `Artifact()`, `ArtifactUpload()`, `Workspace()`, `HostJob()`,
 `Host()`, `Token()`, `AuditEvent()`, `Filler()`, `StorageProvider()`,
 `Product()`, `Discovery()`, `Connection()`, `Role()`, `Trigger()`,
-`Account()` and `Image()` return the generated Connect clients of their
-service; `Channel()` is `ChannelClient`, which spells out the service's
+`Grant()`, `Account()` and `Image()` return the generated Connect clients of
+their service; `Channel()` is `ChannelClient`, which spells out the service's
 calls.
 
 `New` reads the server and token from `TOSHI_SERVER` and `TOSHI_TOKEN`
@@ -128,7 +130,8 @@ picked up without a new client.
 next. The `All` calls yield every item across the pages:
 `Workload().Jobs().All`, `Workload().Sandboxes().All`,
 `Workload().Services().All`, `Workload().Sandboxes().AllPreviewShareLinks`,
-`Workload().Services().AllRuns` and `Workload().AllEvents`. A loop that breaks
+`Workload().Services().AllServiceShareLinks`, `Workload().Services().AllRuns`
+and `Workload().AllEvents`. A loop that breaks
 stops the pages, and an error ends the sequence. For a generated client's
 `List` call, `toshi.Paginate` follows the pages the same way, given the
 request, the method and a function that picks the items from a response.
