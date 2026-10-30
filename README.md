@@ -58,6 +58,11 @@ calls.
 token. There is no default project or environment: set them with
 `WithScope`, or on each request.
 
+`WithServer` sets the control plane's base URL, `WithCAFile` a PEM bundle
+trusted besides the system's roots, and `WithHTTPClient` the HTTP client,
+replacing the default transport; a client from `WithHTTPClient` cannot be
+combined with a CA file, because the CA file would be ignored.
+
 - Reads, and the writes that take a `request_key`, are retried when the
   server is unavailable or the connection drops, with capped, jittered
   backoff that stops when the context ends. An empty `request_key` is
@@ -92,6 +97,12 @@ token. There is no default project or environment: set them with
   connection drops before the exit.
 
 Execute needs HTTP/2, which the server offers over https.
+
+The policy behind the first bullet is `RetryPolicy`: `MaxAttempts`, which
+counts the first try and disables retries at 1 or less, `InitialBackoff`
+and `MaxBackoff`, where a zero value takes the default. `WithRetryPolicy`
+sets it, and `DefaultRetryPolicy` returns the default — five attempts, a
+200 ms initial backoff and a 10 s cap.
 
 ## Tokens that change
 
@@ -173,7 +184,9 @@ before. It has the product's ID (`Product`), the `Reason`
 (`ReasonProductUnavailable`), the input that turned the product off
 (`Cause`: `CauseBuild`, `CauseOperator`, `CausePlan` or `CauseWorkspace`)
 and, for a product the deployment turns off, how far it has wound down
-(`State`: `no_new_work`, `draining` or `stopped`).
+(`State`: `no_new_work`, `draining` or `stopped`). `ProductReason` is the
+type of `Reason`, the reason of the refusal's `ErrorInfo` detail, and
+`ProductCause` that of `Cause`.
 
 <!-- ExampleProductError -->
 ```go
@@ -357,8 +370,10 @@ code that passes options compiles unchanged.
 
 The module's major version follows the API's: `v1` will serve
 `toshi.workspace.v1`, and a `toshi.workspace.v2` gets a `/v2` module path.
-Until a Toshi release serves the API, the module stays at `v0.x` and
-requires a tagged API release.
+Until a Toshi release serves the API, the module stays at `v0.x`. `go.mod`
+pins the API module at a pseudo-version of `go.toshicloud.io/api`,
+`v0.4.1-0.20261029194559-97c967a669d6` today; a tagged release of the API
+replaces the pseudo-version once there is one.
 
 ## Licence
 
