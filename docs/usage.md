@@ -49,12 +49,12 @@ and revokes the share links of a service's provided names, keeps its alarms
 (`SetAlarm`, `GetAlarm`, `ListAlarms`, `DeleteAlarm`, `PauseAlarm`,
 `ResumeAlarm`, `RunAlarmNow`), and runs its recipe's sign-in programs
 (`StartSignIn`, `AnswerSignIn`, `CancelSignIn`, `GetSignInStatus`).
-`Project()`, `Secret()`, `Webhook()`, `Display()`, `Channel()`, `Recording()`,
+`Project()`, `Secret()`, `Webhook()`, `Display()`, `Endpoint()`, `Recording()`,
 `Volume()`, `Artifact()`, `ArtifactUpload()`, `Workspace()`, `HostJob()`,
 `Host()`, `Token()`, `AuditEvent()`, `Filler()`, `StorageProvider()`,
 `Product()`, `Discovery()`, `Connection()`, `Role()`, `Trigger()`,
 `Grant()`, `Domain()`, `Account()` and `Image()` return the generated Connect clients of
-their service; `Channel()` is `ChannelClient`, which spells out the service's
+their service; `Endpoint()` is `EndpointClient`, which spells out the service's
 calls.
 
 `New` reads the server and token from `TOSHI_SERVER` and `TOSHI_TOKEN`

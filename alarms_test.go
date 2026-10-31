@@ -25,7 +25,7 @@ func TestServiceAlarmsThroughTheClient(t *testing.T) {
 		Name:      "nightly",
 		Schedule:  &workspacev1.SetServiceAlarmRequest_Cron{Cron: "0 3 * * *"},
 		Timezone:  "Europe/Berlin",
-		Channel:   "reports",
+		Endpoint:  "reports",
 		Event:     "report.due",
 		Data:      []byte(`{"kind":"nightly"}`),
 	})
@@ -33,7 +33,7 @@ func TestServiceAlarmsThroughTheClient(t *testing.T) {
 		t.Fatalf("SetAlarm: %v", err)
 	}
 	if got := set.GetAlarm(); got.GetName() != "nightly" || got.GetCron() != "0 3 * * *" ||
-		got.GetTimezone() != "Europe/Berlin" || got.GetChannel() != "reports" ||
+		got.GetTimezone() != "Europe/Berlin" || got.GetEndpoint() != "reports" ||
 		got.GetEvent() != "report.due" || string(got.GetData()) != `{"kind":"nightly"}` ||
 		got.GetGeneration() != 1 {
 		t.Fatalf("SetAlarm answered %v", got)
@@ -44,7 +44,7 @@ func TestServiceAlarmsThroughTheClient(t *testing.T) {
 		t.Fatalf("GetAlarm: %v", err)
 	}
 	if alarm := got.GetAlarm(); alarm.GetName() != "nightly" || alarm.GetCron() != "0 3 * * *" ||
-		alarm.GetChannel() != "reports" || alarm.GetEvent() != "report.due" {
+		alarm.GetEndpoint() != "reports" || alarm.GetEvent() != "report.due" {
 		t.Fatalf("GetAlarm answered %v", alarm)
 	}
 	if occurrences := got.GetOccurrences(); len(occurrences) != 0 {
@@ -55,7 +55,7 @@ func TestServiceAlarmsThroughTheClient(t *testing.T) {
 		ServiceId: "svc-1",
 		Name:      "hourly",
 		Schedule:  &workspacev1.SetServiceAlarmRequest_Cron{Cron: "0 * * * *"},
-		Channel:   "reports",
+		Endpoint:  "reports",
 		Event:     "report.hourly",
 	}); err != nil {
 		t.Fatalf("SetAlarm hourly: %v", err)

@@ -4,6 +4,6 @@ go 1.26.0
 
 require (
 	connectrpc.com/connect v1.21.1
-	go.toshicloud.io/api v0.5.0
+	go.toshicloud.io/api v0.6.0
 	google.golang.org/protobuf v1.36.12
 )

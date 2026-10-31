@@ -147,7 +147,7 @@ func TestIntegration(t *testing.T) {
 	}
 
 	// A workspace-wide token: the services whose calls name no project
-	// (channels, recordings, volumes, artifacts) refuse a project-limited
+	// (endpoints, recordings, volumes, artifacts) refuse a project-limited
 	// one.
 	workspaceWide := strings.TrimSpace(run(t, operatorEnv, bin, "token", "create",
 		"--workspace", installationID,
@@ -243,12 +243,12 @@ func TestIntegration(t *testing.T) {
 	})
 
 	t.Run("OtherServiceClients", func(t *testing.T) {
-		channels, err := wide.Channel().ListChannels(ctx, connect.NewRequest(&workspacev1.ListChannelsRequest{}))
+		endpoints, err := wide.Endpoint().ListEndpoints(ctx, connect.NewRequest(&workspacev1.ListEndpointsRequest{}))
 		if err != nil {
-			t.Fatalf("ListChannels: %v", err)
+			t.Fatalf("ListEndpoints: %v", err)
 		}
-		if len(channels.Msg.GetChannels()) != 0 {
-			t.Fatalf("a workspace without a channel has %d", len(channels.Msg.GetChannels()))
+		if len(endpoints.Msg.GetEndpoints()) != 0 {
+			t.Fatalf("a workspace without an endpoint has %d", len(endpoints.Msg.GetEndpoints()))
 		}
 		volumes, err := wide.Volume().ListVolumes(ctx, connect.NewRequest(&workspacev1.ListVolumesRequest{}))
 		if err != nil {

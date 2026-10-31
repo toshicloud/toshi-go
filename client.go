@@ -30,7 +30,7 @@ type Client struct {
 	secret          workspacev1connect.SecretServiceClient
 	webhook         workspacev1connect.WebhookServiceClient
 	display         workspacev1connect.DisplayServiceClient
-	channel         ChannelClient
+	endpoint        EndpointClient
 	recording       workspacev1connect.RecordingServiceClient
 	volume          workspacev1connect.VolumeServiceClient
 	artifact        workspacev1connect.ArtifactServiceClient
@@ -51,6 +51,7 @@ type Client struct {
 	trigger         workspacev1connect.TriggerServiceClient
 	grant           workspacev1connect.GrantServiceClient
 	domain          workspacev1connect.DomainServiceClient
+	modelCredential workspacev1connect.ModelCredentialServiceClient
 
 	retry RetryPolicy
 }
@@ -71,8 +72,8 @@ func (c *Client) Webhook() workspacev1connect.WebhookServiceClient { return c.we
 // Display is the DisplayService client.
 func (c *Client) Display() workspacev1connect.DisplayServiceClient { return c.display }
 
-// Channel is the ChannelService client, its server stream included.
-func (c *Client) Channel() ChannelClient { return c.channel }
+// Endpoint is the EndpointService client, its server stream included.
+func (c *Client) Endpoint() EndpointClient { return c.endpoint }
 
 // Recording is the RecordingService client.
 func (c *Client) Recording() workspacev1connect.RecordingServiceClient { return c.recording }
@@ -138,24 +139,29 @@ func (c *Client) Grant() workspacev1connect.GrantServiceClient { return c.grant 
 // Domain is the DomainService client.
 func (c *Client) Domain() workspacev1connect.DomainServiceClient { return c.domain }
 
-// ChannelClient is the calls of ChannelService.
-type ChannelClient interface {
-	CreateChannel(context.Context, *connect.Request[workspacev1.CreateChannelRequest]) (*connect.Response[workspacev1.CreateChannelResponse], error)
-	ListChannels(context.Context, *connect.Request[workspacev1.ListChannelsRequest]) (*connect.Response[workspacev1.ListChannelsResponse], error)
-	GetChannel(context.Context, *connect.Request[workspacev1.GetChannelRequest]) (*connect.Response[workspacev1.GetChannelResponse], error)
-	GetChannelPolicy(context.Context, *connect.Request[workspacev1.GetChannelPolicyRequest]) (*connect.Response[workspacev1.GetChannelPolicyResponse], error)
-	SetChannelPolicy(context.Context, *connect.Request[workspacev1.SetChannelPolicyRequest]) (*connect.Response[workspacev1.SetChannelPolicyResponse], error)
-	ListChannelRequests(context.Context, *connect.Request[workspacev1.ListChannelRequestsRequest]) (*connect.Response[workspacev1.ListChannelRequestsResponse], error)
-	GetChannelRequest(context.Context, *connect.Request[workspacev1.GetChannelRequestRequest]) (*connect.Response[workspacev1.GetChannelRequestResponse], error)
-	ExportChannelLog(context.Context, *connect.Request[workspacev1.ExportChannelLogRequest]) (*connect.ServerStreamForClient[workspacev1.ExportChannelLogResponse], error)
-	CreateChannelConnectToken(context.Context, *connect.Request[workspacev1.CreateChannelConnectTokenRequest]) (*connect.Response[workspacev1.CreateChannelConnectTokenResponse], error)
-	RevokeChannelConnectToken(context.Context, *connect.Request[workspacev1.RevokeChannelConnectTokenRequest]) (*connect.Response[workspacev1.RevokeChannelConnectTokenResponse], error)
-	DeleteChannel(context.Context, *connect.Request[workspacev1.DeleteChannelRequest]) (*connect.Response[workspacev1.DeleteChannelResponse], error)
+// ModelCredential is the ModelCredentialService client.
+func (c *Client) ModelCredential() workspacev1connect.ModelCredentialServiceClient {
+	return c.modelCredential
+}
+
+// EndpointClient is the calls of EndpointService.
+type EndpointClient interface {
+	CreateEndpoint(context.Context, *connect.Request[workspacev1.CreateEndpointRequest]) (*connect.Response[workspacev1.CreateEndpointResponse], error)
+	ListEndpoints(context.Context, *connect.Request[workspacev1.ListEndpointsRequest]) (*connect.Response[workspacev1.ListEndpointsResponse], error)
+	GetEndpoint(context.Context, *connect.Request[workspacev1.GetEndpointRequest]) (*connect.Response[workspacev1.GetEndpointResponse], error)
+	GetEndpointPolicy(context.Context, *connect.Request[workspacev1.GetEndpointPolicyRequest]) (*connect.Response[workspacev1.GetEndpointPolicyResponse], error)
+	SetEndpointPolicy(context.Context, *connect.Request[workspacev1.SetEndpointPolicyRequest]) (*connect.Response[workspacev1.SetEndpointPolicyResponse], error)
+	ListEndpointRequests(context.Context, *connect.Request[workspacev1.ListEndpointRequestsRequest]) (*connect.Response[workspacev1.ListEndpointRequestsResponse], error)
+	GetEndpointRequest(context.Context, *connect.Request[workspacev1.GetEndpointRequestRequest]) (*connect.Response[workspacev1.GetEndpointRequestResponse], error)
+	ExportEndpointLog(context.Context, *connect.Request[workspacev1.ExportEndpointLogRequest]) (*connect.ServerStreamForClient[workspacev1.ExportEndpointLogResponse], error)
+	CreateEndpointConnectToken(context.Context, *connect.Request[workspacev1.CreateEndpointConnectTokenRequest]) (*connect.Response[workspacev1.CreateEndpointConnectTokenResponse], error)
+	RevokeEndpointConnectToken(context.Context, *connect.Request[workspacev1.RevokeEndpointConnectTokenRequest]) (*connect.Response[workspacev1.RevokeEndpointConnectTokenResponse], error)
+	DeleteEndpoint(context.Context, *connect.Request[workspacev1.DeleteEndpointRequest]) (*connect.Response[workspacev1.DeleteEndpointResponse], error)
 	ListForwards(context.Context, *connect.Request[workspacev1.ListForwardsRequest]) (*connect.Response[workspacev1.ListForwardsResponse], error)
-	GetLink(context.Context, *connect.Request[workspacev1.GetLinkRequest]) (*connect.Response[workspacev1.GetLinkResponse], error)
-	SendChannelMessage(context.Context, *connect.Request[workspacev1.SendChannelMessageRequest]) (*connect.Response[workspacev1.SendChannelMessageResponse], error)
-	TailChannelMessages(context.Context, *connect.Request[workspacev1.TailChannelMessagesRequest]) (*connect.ServerStreamForClient[workspacev1.TailChannelMessagesResponse], error)
-	ReplayChannelMessage(context.Context, *connect.Request[workspacev1.ReplayChannelMessageRequest]) (*connect.Response[workspacev1.ReplayChannelMessageResponse], error)
+	GetTunnel(context.Context, *connect.Request[workspacev1.GetTunnelRequest]) (*connect.Response[workspacev1.GetTunnelResponse], error)
+	SendEndpointMessage(context.Context, *connect.Request[workspacev1.SendEndpointMessageRequest]) (*connect.Response[workspacev1.SendEndpointMessageResponse], error)
+	TailEndpointMessages(context.Context, *connect.Request[workspacev1.TailEndpointMessagesRequest]) (*connect.ServerStreamForClient[workspacev1.TailEndpointMessagesResponse], error)
+	ReplayEndpointMessage(context.Context, *connect.Request[workspacev1.ReplayEndpointMessageRequest]) (*connect.Response[workspacev1.ReplayEndpointMessageResponse], error)
 }
 
 // New builds a Client from opts, then from the environment. It returns an
@@ -210,7 +216,7 @@ func New(opts ...Option) (*Client, error) {
 		secret:          workspacev1connect.NewSecretServiceClient(api, server, options...),
 		webhook:         workspacev1connect.NewWebhookServiceClient(api, server, options...),
 		display:         workspacev1connect.NewDisplayServiceClient(api, server, options...),
-		channel:         workspacev1connect.NewChannelServiceClient(api, server, options...),
+		endpoint:        workspacev1connect.NewEndpointServiceClient(api, server, options...),
 		recording:       workspacev1connect.NewRecordingServiceClient(api, server, options...),
 		volume:          workspacev1connect.NewVolumeServiceClient(api, server, options...),
 		artifact:        workspacev1connect.NewArtifactServiceClient(api, server, options...),
@@ -231,6 +237,7 @@ func New(opts ...Option) (*Client, error) {
 		trigger:         workspacev1connect.NewTriggerServiceClient(api, server, options...),
 		grant:           workspacev1connect.NewGrantServiceClient(api, server, options...),
 		domain:          workspacev1connect.NewDomainServiceClient(api, server, options...),
+		modelCredential: workspacev1connect.NewModelCredentialServiceClient(api, server, options...),
 		retry:           policy,
 	}
 	workload := newWorkloadClient(client, workspacev1connect.NewWorkloadServiceClient(api, server, options...))

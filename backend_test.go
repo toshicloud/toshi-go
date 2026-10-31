@@ -26,7 +26,7 @@ type backend struct {
 	workspacev1connect.UnimplementedSecretServiceHandler
 	workspacev1connect.UnimplementedWebhookServiceHandler
 	workspacev1connect.UnimplementedDisplayServiceHandler
-	workspacev1connect.UnimplementedChannelServiceHandler
+	workspacev1connect.UnimplementedEndpointServiceHandler
 	workspacev1connect.UnimplementedRecordingServiceHandler
 	workspacev1connect.UnimplementedVolumeServiceHandler
 	workspacev1connect.UnimplementedArtifactServiceHandler
@@ -48,9 +48,9 @@ type backend struct {
 	listEvents           func(context.Context, *connect.Request[workspacev1.ListEventsRequest]) (*connect.Response[workspacev1.ListEventsResponse], error)
 	listProjects         func(context.Context, *connect.Request[workspacev1.ListProjectsRequest]) (*connect.Response[workspacev1.ListProjectsResponse], error)
 	putSecret            func(context.Context, *connect.Request[workspacev1.PutSecretRequest]) (*connect.Response[workspacev1.PutSecretResponse], error)
-	listWebhookEndpoints func(context.Context, *connect.Request[workspacev1.ListWebhookEndpointsRequest]) (*connect.Response[workspacev1.ListWebhookEndpointsResponse], error)
+	listWebhooks         func(context.Context, *connect.Request[workspacev1.ListWebhooksRequest]) (*connect.Response[workspacev1.ListWebhooksResponse], error)
 	openDisplaySession   func(context.Context, *connect.Request[workspacev1.OpenDisplaySessionRequest]) (*connect.Response[workspacev1.OpenDisplaySessionResponse], error)
-	listChannels         func(context.Context, *connect.Request[workspacev1.ListChannelsRequest]) (*connect.Response[workspacev1.ListChannelsResponse], error)
+	listEndpoints        func(context.Context, *connect.Request[workspacev1.ListEndpointsRequest]) (*connect.Response[workspacev1.ListEndpointsResponse], error)
 	listRecordings       func(context.Context, *connect.Request[workspacev1.ListRecordingsRequest]) (*connect.Response[workspacev1.ListRecordingsResponse], error)
 	listVolumes          func(context.Context, *connect.Request[workspacev1.ListVolumesRequest]) (*connect.Response[workspacev1.ListVolumesResponse], error)
 	listArtifacts        func(context.Context, *connect.Request[workspacev1.ListArtifactsRequest]) (*connect.Response[workspacev1.ListArtifactsResponse], error)
@@ -132,9 +132,9 @@ func (b *backend) PutSecret(ctx context.Context, req *connect.Request[workspacev
 	return nil, unimplemented()
 }
 
-func (b *backend) ListWebhookEndpoints(ctx context.Context, req *connect.Request[workspacev1.ListWebhookEndpointsRequest]) (*connect.Response[workspacev1.ListWebhookEndpointsResponse], error) {
-	if b.listWebhookEndpoints != nil {
-		return b.listWebhookEndpoints(ctx, req)
+func (b *backend) ListWebhooks(ctx context.Context, req *connect.Request[workspacev1.ListWebhooksRequest]) (*connect.Response[workspacev1.ListWebhooksResponse], error) {
+	if b.listWebhooks != nil {
+		return b.listWebhooks(ctx, req)
 	}
 	return nil, unimplemented()
 }
@@ -146,9 +146,9 @@ func (b *backend) OpenDisplaySession(ctx context.Context, req *connect.Request[w
 	return nil, unimplemented()
 }
 
-func (b *backend) ListChannels(ctx context.Context, req *connect.Request[workspacev1.ListChannelsRequest]) (*connect.Response[workspacev1.ListChannelsResponse], error) {
-	if b.listChannels != nil {
-		return b.listChannels(ctx, req)
+func (b *backend) ListEndpoints(ctx context.Context, req *connect.Request[workspacev1.ListEndpointsRequest]) (*connect.Response[workspacev1.ListEndpointsResponse], error) {
+	if b.listEndpoints != nil {
+		return b.listEndpoints(ctx, req)
 	}
 	return nil, unimplemented()
 }
@@ -284,7 +284,7 @@ func newTestServer(t *testing.T, b *backend) *testServer {
 		func() (string, http.Handler) { return workspacev1connect.NewSecretServiceHandler(b) },
 		func() (string, http.Handler) { return workspacev1connect.NewWebhookServiceHandler(b) },
 		func() (string, http.Handler) { return workspacev1connect.NewDisplayServiceHandler(b) },
-		func() (string, http.Handler) { return workspacev1connect.NewChannelServiceHandler(b) },
+		func() (string, http.Handler) { return workspacev1connect.NewEndpointServiceHandler(b) },
 		func() (string, http.Handler) { return workspacev1connect.NewRecordingServiceHandler(b) },
 		func() (string, http.Handler) { return workspacev1connect.NewVolumeServiceHandler(b) },
 		func() (string, http.Handler) { return workspacev1connect.NewArtifactServiceHandler(b) },
@@ -338,7 +338,7 @@ func TestRetryMapCoversEveryProcedure(t *testing.T) {
 		workspacev1.File_toshi_workspace_v1_projects_proto,
 		workspacev1.File_toshi_workspace_v1_webhook_proto,
 		workspacev1.File_toshi_workspace_v1_display_proto,
-		workspacev1.File_toshi_workspace_v1_channels_proto,
+		workspacev1.File_toshi_workspace_v1_endpoints_proto,
 		workspacev1.File_toshi_workspace_v1_recordings_proto,
 		workspacev1.File_toshi_workspace_v1_volumes_proto,
 		workspacev1.File_toshi_workspace_v1_account_proto,
@@ -385,8 +385,8 @@ func TestRetryMapCoversEveryProcedure(t *testing.T) {
 			}
 		}
 	}
-	if seen != 255 {
-		t.Errorf("checked %d procedures, want 255", seen)
+	if seen != 257 {
+		t.Errorf("checked %d procedures, want 257", seen)
 	}
 }
 

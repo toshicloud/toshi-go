@@ -38,7 +38,7 @@ func (f *Fake) setServiceAlarm(_ context.Context, request *workspacev1.SetServic
 	set := &workspacev1.ServiceAlarm{
 		Name:             request.GetName(),
 		Timezone:         request.GetTimezone(),
-		Channel:          request.GetChannel(),
+		Endpoint:         request.GetEndpoint(),
 		Event:            request.GetEvent(),
 		Data:             slices.Clone(request.GetData()),
 		Misfire:          request.GetMisfire(),

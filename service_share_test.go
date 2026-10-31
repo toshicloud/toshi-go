@@ -23,7 +23,7 @@ func TestServiceShareLinksThroughTheClient(t *testing.T) {
 		return &workspacev1.ServiceShareLink{
 			Id:        id,
 			ServiceId: "svc-1",
-			Channel:   "front",
+			Endpoint:  "front",
 			State:     workspacev1.PreviewShareLinkState_PREVIEW_SHARE_LINK_STATE_OPEN,
 			CreatedAt: timestamppb.New(at),
 		}
@@ -32,7 +32,7 @@ func TestServiceShareLinksThroughTheClient(t *testing.T) {
 
 	toshitest.On(tt, workspacev1connect.WorkloadServiceCreateServiceShareLinkProcedure,
 		func(_ context.Context, request *workspacev1.CreateServiceShareLinkRequest) (*workspacev1.CreateServiceShareLinkResponse, error) {
-			if request.GetServiceId() != "svc-1" || request.GetChannel() != "" {
+			if request.GetServiceId() != "svc-1" || request.GetEndpoint() != "" {
 				t.Errorf("CreateServiceShareLink asked for %v", request)
 			}
 			return &workspacev1.CreateServiceShareLinkResponse{
@@ -72,7 +72,7 @@ func TestServiceShareLinksThroughTheClient(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := created.GetShareLink(); got.GetId() != "link-2" || got.GetChannel() != "front" ||
+	if got := created.GetShareLink(); got.GetId() != "link-2" || got.GetEndpoint() != "front" ||
 		!got.GetCreatedAt().AsTime().Equal(mintedAt) {
 		t.Fatalf("CreateServiceShareLink answered %v", got)
 	}
