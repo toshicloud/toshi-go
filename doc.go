@@ -3,9 +3,13 @@
 // New returns a Client with one method per service of the API. Workload is
 // written by this module: a job's calls under Workload().Jobs(), a sandbox's
 // under Workload().Sandboxes(), a service's under Workload().Services(), and
-// the calls that span the three on Workload() itself. The other methods are
-// the generated Connect clients of their service, from the module
-// go.toshicloud.io/api. The client sends its token as a bearer
+// the calls that span the three on Workload() itself. Workload().Services()
+// also keeps a service's alarms (SetAlarm, GetAlarm, ListAlarms, DeleteAlarm,
+// PauseAlarm, ResumeAlarm, RunAlarmNow) and runs its recipe's sign-in
+// programs (StartSignIn, AnswerSignIn, CancelSignIn, GetSignInStatus);
+// Workload().EmitEvent appends an event to any of the three event logs. The
+// other methods are the generated Connect clients of their service, from the
+// module go.toshicloud.io/api. The client sends its token as a bearer
 // token and fills an empty project and environment from WithScope. It
 // retries reads, and the writes that take a request_key, when the server is
 // unavailable, the connection drops or a RESOURCE_EXHAUSTED refusal names a
