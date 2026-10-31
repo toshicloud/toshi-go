@@ -41,7 +41,10 @@ for _, job := range jobs.GetJobs() {
 `Workload().Jobs()`, a sandbox's under `Workload().Sandboxes()`, a service's
 under `Workload().Services()`, and the calls that span the three on
 `Workload()` itself (`WatchEvents`, `ListEvents`, `EmitEvent`, `GetOperation`,
-`AnswerPrompt`, `WaitOperation`). `Workload().Sandboxes().ExecuteCommand`
+`AnswerPrompt`, `HoldWorkload`, `ReleaseWorkload`, `WaitOperation`).
+`HoldWorkload` and `ReleaseWorkload` are operator-only; their reason header
+comes from an interceptor, as [Operator calls](#operator-calls) shows.
+`Workload().Sandboxes().ExecuteCommand`
 runs a command without standard input. `Workload().Services()` mints, lists
 and revokes the share links of a service's provided names, keeps its alarms
 (`SetAlarm`, `GetAlarm`, `ListAlarms`, `DeleteAlarm`, `PauseAlarm`,
@@ -286,6 +289,43 @@ Every request carries the User-Agent
 `toshi-go/0.4.0 connect-go/1.21.1 (go1.26.0)`. `WithUserAgent("myapp/1.2")`
 puts your product in front: `myapp/1.2 toshi-go/0.4.0 ...`. `toshi.Version`
 is this module's version.
+
+## Operator calls
+
+An operator's token sends its reason in `Toshi-Operator-Reason` and the
+workspace it acts on in `Toshi-Workspace` on every Workspace API call. The
+client has no option or per-call argument for either: `WithInterceptors` sets
+them for the whole client on each request, as below. A stream's headers are
+set the same way in a full `connect.Interceptor`'s `WrapStreamingClient`, on
+the `RequestHeader` of the connection it returns.
+
+<!-- ExampleWithInterceptors_operatorCalls -->
+```go
+import (
+	"context"
+	"log"
+
+	"connectrpc.com/connect"
+	"go.toshicloud.io/toshi"
+)
+
+operator := connect.UnaryInterceptorFunc(func(next connect.UnaryFunc) connect.UnaryFunc {
+	return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+		req.Header().Set("Toshi-Operator-Reason", "abuse-1234")
+		req.Header().Set("Toshi-Workspace", "acme")
+		return next(ctx, req)
+	}
+})
+client, err := toshi.New(
+	toshi.WithScope("default", "production"),
+	toshi.WithInterceptors(operator),
+)
+if err != nil {
+	log.Fatal(err)
+}
+_ = client // Use the client as in the other examples.
+```
+
 ## Testing with toshitest
 
 `toshitest` starts a fake Toshi inside a test: a TLS server speaking HTTP/2
