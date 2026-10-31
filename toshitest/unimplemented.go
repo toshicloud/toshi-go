@@ -62,14 +62,6 @@ var hookOnly = map[string]bool{
 	workspacev1connect.WorkloadServiceWatchEventsProcedure:            true,
 	workspacev1connect.WorkloadServiceGetOperationProcedure:           true,
 	workspacev1connect.WorkloadServiceWaitOperationProcedure:          true,
-	// The fake holds no services.
-	workspacev1connect.WorkloadServiceSetServiceAlarmProcedure:    true,
-	workspacev1connect.WorkloadServiceGetServiceAlarmProcedure:    true,
-	workspacev1connect.WorkloadServiceListServiceAlarmsProcedure:  true,
-	workspacev1connect.WorkloadServiceDeleteServiceAlarmProcedure: true,
-	workspacev1connect.WorkloadServicePauseServiceAlarmProcedure:  true,
-	workspacev1connect.WorkloadServiceResumeServiceAlarmProcedure: true,
-	workspacev1connect.WorkloadServiceRunServiceAlarmNowProcedure: true,
 	// The fake keeps no event log: ListEvents and WatchEvents are hook-only,
 	// so an emitted event would be one no call can read back.
 	workspacev1connect.WorkloadServiceEmitWorkloadEventProcedure: true,
