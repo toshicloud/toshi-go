@@ -62,6 +62,23 @@ var hookOnly = map[string]bool{
 	workspacev1connect.WorkloadServiceWatchEventsProcedure:            true,
 	workspacev1connect.WorkloadServiceGetOperationProcedure:           true,
 	workspacev1connect.WorkloadServiceWaitOperationProcedure:          true,
+	// The fake holds no services.
+	workspacev1connect.WorkloadServiceSetServiceAlarmProcedure:    true,
+	workspacev1connect.WorkloadServiceGetServiceAlarmProcedure:    true,
+	workspacev1connect.WorkloadServiceListServiceAlarmsProcedure:  true,
+	workspacev1connect.WorkloadServiceDeleteServiceAlarmProcedure: true,
+	workspacev1connect.WorkloadServicePauseServiceAlarmProcedure:  true,
+	workspacev1connect.WorkloadServiceResumeServiceAlarmProcedure: true,
+	workspacev1connect.WorkloadServiceRunServiceAlarmNowProcedure: true,
+	// The fake keeps no event log: ListEvents and WatchEvents are hook-only,
+	// so an emitted event would be one no call can read back.
+	workspacev1connect.WorkloadServiceEmitWorkloadEventProcedure: true,
+	// A sign-in runs a program in a running service, and the fake runs no
+	// services.
+	workspacev1connect.WorkloadServiceStartServiceSignInProcedure:     true,
+	workspacev1connect.WorkloadServiceAnswerServiceSignInProcedure:    true,
+	workspacev1connect.WorkloadServiceCancelServiceSignInProcedure:    true,
+	workspacev1connect.WorkloadServiceGetServiceSignInStatusProcedure: true,
 	// SecretService
 	workspacev1connect.SecretServiceCreateSecretSetProcedure:     true,
 	workspacev1connect.SecretServiceListSecretSetsProcedure:      true,
@@ -73,6 +90,8 @@ var hookOnly = map[string]bool{
 	workspacev1connect.SecretServiceGrantSecretSetProcedure:      true,
 	workspacev1connect.SecretServiceRevokeSecretSetProcedure:     true,
 	workspacev1connect.SecretServiceListSecretSetGrantsProcedure: true,
+	// The fake holds no secret sets.
+	workspacev1connect.SecretServiceUpdateSecretSetProcedure: true,
 	// ProjectService
 	workspacev1connect.ProjectServiceListProjectsProcedure:          true,
 	workspacev1connect.ProjectServiceUpdateProjectProcedure:         true,
@@ -91,6 +110,11 @@ var hookOnly = map[string]bool{
 	workspacev1connect.ProjectServiceSetProjectNetworkProcedure:     true,
 	workspacev1connect.ProjectServiceGetEnvironmentNetworkProcedure: true,
 	workspacev1connect.ProjectServiceSetEnvironmentNetworkProcedure: true,
+	// The fake holds no projects or environments.
+	workspacev1connect.ProjectServiceUpdateEnvironmentProcedure:       true,
+	workspacev1connect.ProjectServiceGetEnvironmentRetentionProcedure: true,
+	workspacev1connect.ProjectServiceSetEnvironmentRetentionProcedure: true,
+	workspacev1connect.ProjectServiceSetEnvironmentVolumesProcedure:   true,
 	// WebhookService
 	workspacev1connect.WebhookServiceCreateWebhookEndpointProcedure:       true,
 	workspacev1connect.WebhookServiceGetWebhookEndpointProcedure:          true,
@@ -139,6 +163,10 @@ var hookOnly = map[string]bool{
 	workspacev1connect.VolumeServiceDetachVolumeProcedure:       true,
 	workspacev1connect.VolumeServiceListVolumeVersionsProcedure: true,
 	workspacev1connect.VolumeServiceRestoreVolumeProcedure:      true,
+	// The fake holds no volumes.
+	workspacev1connect.VolumeServiceCreateVolumeProcedure: true,
+	workspacev1connect.VolumeServiceUpdateVolumeProcedure: true,
+	workspacev1connect.VolumeServiceDeleteVolumeProcedure: true,
 	// ArtifactUploadService
 	workspacev1connect.ArtifactUploadServiceReserveUploadProcedure:  true,
 	workspacev1connect.ArtifactUploadServiceCompleteUploadProcedure: true,
@@ -253,4 +281,7 @@ var hookOnly = map[string]bool{
 	workspacev1connect.WorkspaceServiceListSeatsProcedure:                  true,
 	workspacev1connect.WorkspaceServiceAssignSeatProcedure:                 true,
 	workspacev1connect.WorkspaceServiceRemoveSeatProcedure:                 true,
+	// The fake holds no workspace record: GetWorkspace is hook-only too.
+	workspacev1connect.WorkspaceServiceDeleteWorkspaceProcedure:         true,
+	workspacev1connect.WorkspaceServiceCancelWorkspaceDeletionProcedure: true,
 }
