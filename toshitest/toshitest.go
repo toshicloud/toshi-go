@@ -49,7 +49,9 @@
 //     occurrence, which GetServiceAlarm returns newest first; a run whose
 //     request key the fake has already answered returns the same occurrence.
 //     With no clock an alarm publishes nothing on its own, a cron alarm has
-//     no next instant, and no time is set. An unknown alarm is NOT_FOUND.
+//     no next instant, and the fake sets no time of its own: an alarm set at
+//     an instant has that instant as its next one. An unknown alarm is
+//     NOT_FOUND.
 //
 // Every other procedure is hook-only. An unhooked procedure the state machine
 // does not cover answers UNIMPLEMENTED, naming the procedure and the function
