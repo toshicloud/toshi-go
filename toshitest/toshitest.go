@@ -14,8 +14,8 @@
 // # What the fake answers
 //
 // The fake holds one workspace and has no clock: every call answers at once
-// with what the test set. It knows the job and the sandbox lifecycle and
-// nothing else.
+// with what the test set. It knows the job and the sandbox lifecycle and a
+// service's alarms, and nothing else.
 //
 //   - Job, Sandbox and Execute set what the fake answers: a job's or a
 //     sandbox's state, and the standard output, the standard error and the
@@ -41,6 +41,15 @@
 //   - Execute answers the start message with an execution id, the standard
 //     output, the standard error and the exit code the test set for the
 //     sandbox. It does not read standard input.
+//   - SetServiceAlarm, GetServiceAlarm, ListServiceAlarms,
+//     DeleteServiceAlarm, PauseServiceAlarm, ResumeServiceAlarm and
+//     RunServiceAlarmNow keep alarms for any service ID: the fake holds no
+//     services. A set creates an alarm at generation 1, or replaces it at the
+//     next generation and resumes it. RunServiceAlarmNow records a manual
+//     occurrence, which GetServiceAlarm returns newest first; a run whose
+//     request key the fake has already answered returns the same occurrence.
+//     With no clock an alarm publishes nothing on its own, a cron alarm has
+//     no next instant, and no time is set. An unknown alarm is NOT_FOUND.
 //
 // Every other procedure is hook-only. An unhooked procedure the state machine
 // does not cover answers UNIMPLEMENTED, naming the procedure and the function
@@ -121,6 +130,9 @@ type Fake struct {
 
 	executions    map[string]*execution
 	nextExecution int
+
+	alarms    map[alarmKey]*alarm
+	alarmRuns map[string]*workspacev1.ServiceAlarmOccurrence
 }
 
 // New starts a fake Toshi. It closes the fake with tb.Cleanup; tb may be nil,
@@ -140,6 +152,8 @@ func New(tb testing.TB) *Fake {
 		sandboxKeys:    map[string]*sandbox{},
 		sandboxChanged: make(chan struct{}),
 		executions:     map[string]*execution{},
+		alarms:         map[alarmKey]*alarm{},
+		alarmRuns:      map[string]*workspacev1.ServiceAlarmOccurrence{},
 	}
 	f.registerBuiltins()
 	f.start()

@@ -291,3 +291,49 @@ func TestUnimplemented(t *testing.T) {
 		t.Errorf("message %q does not name the hook function", err)
 	}
 }
+
+// TestServiceAlarmLifecycle proves a replaced alarm takes the next generation
+// and is resumed, and a deleted alarm is NOT_FOUND.
+func TestServiceAlarmLifecycle(t *testing.T) {
+	tt := toshitest.New(t)
+	ctx := context.Background()
+	workload := workspacev1connect.NewWorkloadServiceClient(tt.HTTPClient(), tt.URL())
+	set := &workspacev1.SetServiceAlarmRequest{
+		ServiceId: "svc-1",
+		Name:      "nightly",
+		Schedule:  &workspacev1.SetServiceAlarmRequest_Cron{Cron: "0 3 * * *"},
+	}
+	if _, err := workload.SetServiceAlarm(ctx, connect.NewRequest(set)); err != nil {
+		t.Fatalf("SetServiceAlarm: %v", err)
+	}
+	paused, err := workload.PauseServiceAlarm(ctx, connect.NewRequest(&workspacev1.PauseServiceAlarmRequest{
+		ServiceId: "svc-1", Name: "nightly",
+	}))
+	if err != nil {
+		t.Fatalf("PauseServiceAlarm: %v", err)
+	}
+	if !paused.Msg.GetAlarm().GetPaused() {
+		t.Fatal("the alarm is not paused after PauseServiceAlarm")
+	}
+
+	replaced, err := workload.SetServiceAlarm(ctx, connect.NewRequest(set))
+	if err != nil {
+		t.Fatalf("second SetServiceAlarm: %v", err)
+	}
+	if got := replaced.Msg.GetAlarm(); got.GetGeneration() != 2 || got.GetPaused() {
+		t.Fatalf("replaced alarm at generation %d, paused %v; want generation 2, not paused", got.GetGeneration(), got.GetPaused())
+	}
+
+	_, err = workload.DeleteServiceAlarm(ctx, connect.NewRequest(&workspacev1.DeleteServiceAlarmRequest{
+		ServiceId: "svc-1", Name: "nightly",
+	}))
+	if err != nil {
+		t.Fatalf("DeleteServiceAlarm: %v", err)
+	}
+	_, err = workload.GetServiceAlarm(ctx, connect.NewRequest(&workspacev1.GetServiceAlarmRequest{
+		ServiceId: "svc-1", Name: "nightly",
+	}))
+	if connect.CodeOf(err) != connect.CodeNotFound {
+		t.Fatalf("GetServiceAlarm after delete: %v, want NOT_FOUND", err)
+	}
+}
