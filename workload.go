@@ -120,6 +120,32 @@ func (w WorkloadClient) AnswerPrompt(ctx context.Context, req *workspacev1.Answe
 	return resp.Msg, nil
 }
 
+// HoldWorkload places an operator's hold on a sandbox or service: a running
+// one is stopped with reason POLICY and cause OPERATOR, and a stopped one only
+// gets the hold. A job cannot be held; cancel it instead. Only an operator's
+// token may call it, and the call carries the operator's reason and workspace
+// in the Toshi-Operator-Reason and Toshi-Workspace headers, which an
+// interceptor sets; see "Operator calls" in the README.
+func (w WorkloadClient) HoldWorkload(ctx context.Context, req *workspacev1.HoldWorkloadRequest) (*workspacev1.HoldWorkloadResponse, error) {
+	resp, err := w.call.svc.HoldWorkload(ctx, connect.NewRequest(req))
+	if err != nil {
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
+// ReleaseWorkload lifts an operator's hold on a sandbox or service and starts
+// nothing. Only an operator's token may call it, with the same
+// Toshi-Operator-Reason and Toshi-Workspace headers HoldWorkload needs; see
+// "Operator calls" in the README.
+func (w WorkloadClient) ReleaseWorkload(ctx context.Context, req *workspacev1.ReleaseWorkloadRequest) (*workspacev1.ReleaseWorkloadResponse, error) {
+	resp, err := w.call.svc.ReleaseWorkload(ctx, connect.NewRequest(req))
+	if err != nil {
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
 // Create creates a job and returns it.
 func (j JobsClient) Create(ctx context.Context, req *workspacev1.CreateJobRequest) (*workspacev1.CreateJobResponse, error) {
 	resp, err := j.call.svc.CreateJob(ctx, connect.NewRequest(req))

@@ -122,6 +122,24 @@ func ExampleWithInterceptors() {
 	_ = client // Use the client as in the other examples.
 }
 
+func ExampleWithInterceptors_operatorCalls() {
+	operator := connect.UnaryInterceptorFunc(func(next connect.UnaryFunc) connect.UnaryFunc {
+		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+			req.Header().Set("Toshi-Operator-Reason", "abuse-1234")
+			req.Header().Set("Toshi-Workspace", "acme")
+			return next(ctx, req)
+		}
+	})
+	client, err := toshi.New(
+		toshi.WithScope("default", "production"),
+		toshi.WithInterceptors(operator),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	_ = client // Use the client as in the other examples.
+}
+
 func ExampleWithTokenSource() {
 	var token atomic.Value // Store each new token here, for example from a refresh loop.
 	token.Store("first-token")
