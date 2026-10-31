@@ -85,6 +85,21 @@ func (w WorkloadClient) WatchEvents(ctx context.Context, req *workspacev1.WatchE
 	return newEventWatch(ctx, w.call, req)
 }
 
+// EmitEvent appends an event to a job's, a sandbox's or a service's event
+// log, as its guest emits one, and returns it: type EMITTED, the name given
+// and the data. The workload need not be running. The name is 1 to 200 bytes
+// of UTF-8 with no space or control character, and its first dot-separated
+// segment is none Toshi keeps for its own events (job, sandbox, run,
+// service, recording, agent, takeover, spend, egress, host, github, webhook,
+// trigger and mail); the data is empty or JSON of at most 64 KiB.
+func (w WorkloadClient) EmitEvent(ctx context.Context, req *workspacev1.EmitWorkloadEventRequest) (*workspacev1.EmitWorkloadEventResponse, error) {
+	resp, err := w.call.svc.EmitWorkloadEvent(ctx, connect.NewRequest(req))
+	if err != nil {
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
 // GetOperation returns one operation.
 func (w WorkloadClient) GetOperation(ctx context.Context, req *workspacev1.GetOperationRequest) (*workspacev1.GetOperationResponse, error) {
 	resp, err := w.call.svc.GetOperation(ctx, connect.NewRequest(req))
@@ -498,6 +513,137 @@ func (s ServicesClient) AllServiceShareLinks(ctx context.Context, req *workspace
 // device again and its open connections end.
 func (s ServicesClient) RevokeServiceShareLink(ctx context.Context, req *workspacev1.RevokeServiceShareLinkRequest) (*workspacev1.RevokeServiceShareLinkResponse, error) {
 	resp, err := s.call.svc.RevokeServiceShareLink(ctx, connect.NewRequest(req))
+	if err != nil {
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
+// SetAlarm creates or replaces the service's alarm with this name and
+// returns it. At each instant of its schedule the alarm publishes its event,
+// with its data, on one of the service's event channels. Replacing an alarm
+// raises its generation and schedules it again from now.
+func (s ServicesClient) SetAlarm(ctx context.Context, req *workspacev1.SetServiceAlarmRequest) (*workspacev1.SetServiceAlarmResponse, error) {
+	resp, err := s.call.svc.SetServiceAlarm(ctx, connect.NewRequest(req))
+	if err != nil {
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
+// GetAlarm returns one alarm and its most recent occurrences, newest first.
+func (s ServicesClient) GetAlarm(ctx context.Context, req *workspacev1.GetServiceAlarmRequest) (*workspacev1.GetServiceAlarmResponse, error) {
+	resp, err := s.call.svc.GetServiceAlarm(ctx, connect.NewRequest(req))
+	if err != nil {
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
+// ListAlarms returns all of the service's alarms, by name, in one answer.
+// The request has no page token, so there is no All iterator.
+func (s ServicesClient) ListAlarms(ctx context.Context, req *workspacev1.ListServiceAlarmsRequest) (*workspacev1.ListServiceAlarmsResponse, error) {
+	resp, err := s.call.svc.ListServiceAlarms(ctx, connect.NewRequest(req))
+	if err != nil {
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
+// DeleteAlarm removes an alarm and its occurrences. Messages it already
+// published stay on the channel.
+func (s ServicesClient) DeleteAlarm(ctx context.Context, req *workspacev1.DeleteServiceAlarmRequest) (*workspacev1.DeleteServiceAlarmResponse, error) {
+	resp, err := s.call.svc.DeleteServiceAlarm(ctx, connect.NewRequest(req))
+	if err != nil {
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
+// PauseAlarm stops an alarm publishing until it is resumed. Pausing a paused
+// alarm changes nothing.
+func (s ServicesClient) PauseAlarm(ctx context.Context, req *workspacev1.PauseServiceAlarmRequest) (*workspacev1.PauseServiceAlarmResponse, error) {
+	resp, err := s.call.svc.PauseServiceAlarm(ctx, connect.NewRequest(req))
+	if err != nil {
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
+// ResumeAlarm starts a paused alarm again from the next instant of its
+// schedule; instants that passed while it was paused are not published. An
+// alarm with a single instant that has passed stays without a next instant.
+// Resuming an alarm that is not paused changes nothing.
+func (s ServicesClient) ResumeAlarm(ctx context.Context, req *workspacev1.ResumeServiceAlarmRequest) (*workspacev1.ResumeServiceAlarmResponse, error) {
+	resp, err := s.call.svc.ResumeServiceAlarm(ctx, connect.NewRequest(req))
+	if err != nil {
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
+// RunAlarmNow publishes the alarm's event once, now, paused or not, and
+// returns the occurrence. It does not move the alarm's next instant.
+func (s ServicesClient) RunAlarmNow(ctx context.Context, req *workspacev1.RunServiceAlarmNowRequest) (*workspacev1.RunServiceAlarmNowResponse, error) {
+	resp, err := s.call.svc.RunServiceAlarmNow(ctx, connect.NewRequest(req))
+	if err != nil {
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
+// StartSignIn runs one of the service's recipe's sign_in programs and streams
+// what it writes until it ends: the started message names the sign-in and
+// when it is stopped, the output messages carry its standard output and
+// standard error, and the ended message says how it ended, with its exit code
+// when it exited. The output is never stored.
+//
+// The caller receives the started message and keeps its sign_in_id and
+// ends_at, then reads the output messages. When the program asks for
+// something, call AnswerSignIn with the sign_in_id and one line of at most
+// 4 KiB with no newline, or CancelSignIn to end it early. The ended message
+// comes last; Close the stream after it.
+//
+// The stream is not retried. A stream that ends before the ended message, as
+// it does when the client leaves, also ends the sign-in, cancelled: start a
+// new sign-in, and ask GetSignInStatus whether the program is signed in. A
+// sign-in runs for 15 minutes at most, past which it ends TIMED_OUT. Only one
+// sign-in of a program runs at a time: a second fails with
+// FAILED_PRECONDITION while the first is under way.
+func (s ServicesClient) StartSignIn(ctx context.Context, req *workspacev1.StartServiceSignInRequest) (*connect.ServerStreamForClient[workspacev1.StartServiceSignInResponse], error) {
+	return s.call.svc.StartServiceSignIn(ctx, connect.NewRequest(req))
+}
+
+// AnswerSignIn writes one line to a running sign-in's standard input, for
+// its program to read. The answer is one line of at most 4 KiB, with no
+// newline in it, and is never stored.
+func (s ServicesClient) AnswerSignIn(ctx context.Context, req *workspacev1.AnswerServiceSignInRequest) (*workspacev1.AnswerServiceSignInResponse, error) {
+	resp, err := s.call.svc.AnswerServiceSignIn(ctx, connect.NewRequest(req))
+	if err != nil {
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
+// CancelSignIn ends a running sign-in: its program is cancelled and its
+// stream ends CANCELLED. It returns once the cancel is asked for, not once
+// the sign-in has ended.
+func (s ServicesClient) CancelSignIn(ctx context.Context, req *workspacev1.CancelServiceSignInRequest) (*workspacev1.CancelServiceSignInResponse, error) {
+	resp, err := s.call.svc.CancelServiceSignIn(ctx, connect.NewRequest(req))
+	if err != nil {
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
+// GetSignInStatus runs the status commands of the service's recipe and
+// reports, for each sign_in program, whether it is signed in and what its
+// status command wrote. Program names one program; empty asks for every
+// program the recipe declares, in its order. Each command runs for 30 seconds
+// at most, past which it is not signed in. An output is cut at 4 KiB, ending
+// with "[cut]". The status is not stored.
+func (s ServicesClient) GetSignInStatus(ctx context.Context, req *workspacev1.GetServiceSignInStatusRequest) (*workspacev1.GetServiceSignInStatusResponse, error) {
+	resp, err := s.call.svc.GetServiceSignInStatus(ctx, connect.NewRequest(req))
 	if err != nil {
 		return nil, err
 	}
