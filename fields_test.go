@@ -19,55 +19,55 @@ import (
 	"go.toshicloud.io/toshi/toshitest"
 )
 
-// TestWebhookEndpointCursorThroughTheClient proves an endpoint's expired
-// cursor and its retention boundary come back through the client, and that
-// a cursor moves by the update mask.
-func TestWebhookEndpointCursorThroughTheClient(t *testing.T) {
+// TestWebhookCursorThroughTheClient proves a webhook's expired cursor and
+// its retention boundary come back through the client, and that a cursor
+// moves by the update mask.
+func TestWebhookCursorThroughTheClient(t *testing.T) {
 	ctx := context.Background()
 	boundary := time.Date(2026, 10, 21, 0, 0, 0, 0, time.UTC)
 	tt := toshitest.New(t)
 
-	toshitest.On(tt, workspacev1connect.WebhookServiceGetWebhookEndpointProcedure,
-		func(context.Context, *workspacev1.GetWebhookEndpointRequest) (*workspacev1.GetWebhookEndpointResponse, error) {
-			return &workspacev1.GetWebhookEndpointResponse{Endpoint: &workspacev1.WebhookEndpoint{
+	toshitest.On(tt, workspacev1connect.WebhookServiceGetWebhookProcedure,
+		func(context.Context, *workspacev1.GetWebhookRequest) (*workspacev1.GetWebhookResponse, error) {
+			return &workspacev1.GetWebhookResponse{Webhook: &workspacev1.Webhook{
 				Id: "wh-1", Url: "https://example.com/hook",
 				CursorExpired:     true,
 				RetentionBoundary: timestamppb.New(boundary),
 			}}, nil
 		})
-	toshitest.On(tt, workspacev1connect.WebhookServiceUpdateWebhookEndpointProcedure,
-		func(_ context.Context, request *workspacev1.UpdateWebhookEndpointRequest) (*workspacev1.UpdateWebhookEndpointResponse, error) {
+	toshitest.On(tt, workspacev1connect.WebhookServiceUpdateWebhookProcedure,
+		func(_ context.Context, request *workspacev1.UpdateWebhookRequest) (*workspacev1.UpdateWebhookResponse, error) {
 			if got := request.GetUpdateMask().GetPaths(); len(got) != 1 || got[0] != "cursor" {
 				t.Errorf("the update mask is %v", got)
 			}
-			return &workspacev1.UpdateWebhookEndpointResponse{Endpoint: &workspacev1.WebhookEndpoint{
-				Id: "wh-1", Url: "https://example.com/hook", Cursor: request.GetEndpoint().GetCursor(),
+			return &workspacev1.UpdateWebhookResponse{Webhook: &workspacev1.Webhook{
+				Id: "wh-1", Url: "https://example.com/hook", Cursor: request.GetWebhook().GetCursor(),
 			}}, nil
 		})
 
 	client := tt.Client()
-	got, err := client.Webhook().GetWebhookEndpoint(ctx, connect.NewRequest(&workspacev1.GetWebhookEndpointRequest{Id: "wh-1"}))
+	got, err := client.Webhook().GetWebhook(ctx, connect.NewRequest(&workspacev1.GetWebhookRequest{Id: "wh-1"}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	endpoint := got.Msg.GetEndpoint()
-	if !endpoint.GetCursorExpired() {
-		t.Error("an endpoint whose cursor expired came back unexpired")
+	webhook := got.Msg.GetWebhook()
+	if !webhook.GetCursorExpired() {
+		t.Error("a webhook whose cursor expired came back unexpired")
 	}
-	if !endpoint.GetRetentionBoundary().AsTime().Equal(boundary) {
-		t.Errorf("the retention boundary is %v", endpoint.GetRetentionBoundary())
+	if !webhook.GetRetentionBoundary().AsTime().Equal(boundary) {
+		t.Errorf("the retention boundary is %v", webhook.GetRetentionBoundary())
 	}
 
-	moved, err := client.Webhook().UpdateWebhookEndpoint(ctx, connect.NewRequest(&workspacev1.UpdateWebhookEndpointRequest{
+	moved, err := client.Webhook().UpdateWebhook(ctx, connect.NewRequest(&workspacev1.UpdateWebhookRequest{
 		Id:         "wh-1",
-		Endpoint:   &workspacev1.WebhookEndpoint{Cursor: "100"},
+		Webhook:    &workspacev1.Webhook{Cursor: "100"},
 		UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"cursor"}},
 	}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if moved.Msg.GetEndpoint().GetCursor() != "100" {
-		t.Fatalf("the moved endpoint has cursor %q", moved.Msg.GetEndpoint().GetCursor())
+	if moved.Msg.GetWebhook().GetCursor() != "100" {
+		t.Fatalf("the moved webhook has cursor %q", moved.Msg.GetWebhook().GetCursor())
 	}
 }
 

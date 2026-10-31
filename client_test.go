@@ -236,12 +236,12 @@ func TestClientMethodsCallTheirServices(t *testing.T) {
 	check("Project", err)
 	_, err = client.Secret().PutSecret(ctx, connect.NewRequest(&workspacev1.PutSecretRequest{Name: "k", Value: []byte("v")}))
 	check("Secret", err)
-	_, err = client.Webhook().ListWebhookEndpoints(ctx, connect.NewRequest(&workspacev1.ListWebhookEndpointsRequest{}))
+	_, err = client.Webhook().ListWebhooks(ctx, connect.NewRequest(&workspacev1.ListWebhooksRequest{}))
 	check("Webhook", err)
 	_, err = client.Display().OpenDisplaySession(ctx, connect.NewRequest(&workspacev1.OpenDisplaySessionRequest{}))
 	check("Display", err)
-	_, err = client.Channel().ListChannels(ctx, connect.NewRequest(&workspacev1.ListChannelsRequest{JobId: "job-1"}))
-	check("Channel", err)
+	_, err = client.Endpoint().ListEndpoints(ctx, connect.NewRequest(&workspacev1.ListEndpointsRequest{JobId: "job-1"}))
+	check("Endpoint", err)
 	_, err = client.Recording().ListRecordings(ctx, connect.NewRequest(&workspacev1.ListRecordingsRequest{WorkloadId: "job-1"}))
 	check("Recording", err)
 	_, err = client.Volume().ListVolumes(ctx, connect.NewRequest(&workspacev1.ListVolumesRequest{}))
@@ -285,9 +285,9 @@ func TestClientMethodsCallTheirServices(t *testing.T) {
 		workspacev1connect.WorkloadServiceCreateJobProcedure,
 		workspacev1connect.ProjectServiceListProjectsProcedure,
 		workspacev1connect.SecretServicePutSecretProcedure,
-		workspacev1connect.WebhookServiceListWebhookEndpointsProcedure,
+		workspacev1connect.WebhookServiceListWebhooksProcedure,
 		workspacev1connect.DisplayServiceOpenDisplaySessionProcedure,
-		workspacev1connect.ChannelServiceListChannelsProcedure,
+		workspacev1connect.EndpointServiceListEndpointsProcedure,
 		workspacev1connect.RecordingServiceListRecordingsProcedure,
 		workspacev1connect.VolumeServiceListVolumesProcedure,
 		workspacev1connect.ArtifactServiceListArtifactsProcedure,
@@ -617,7 +617,7 @@ func TestAccessorsReturnSameClient(t *testing.T) {
 		{"Secret", client.Secret(), client.Secret()},
 		{"Webhook", client.Webhook(), client.Webhook()},
 		{"Display", client.Display(), client.Display()},
-		{"Channel", client.Channel(), client.Channel()},
+		{"Endpoint", client.Endpoint(), client.Endpoint()},
 		{"Recording", client.Recording(), client.Recording()},
 		{"Volume", client.Volume(), client.Volume()},
 		{"Artifact", client.Artifact(), client.Artifact()},

@@ -69,7 +69,7 @@ func ExampleFake_serviceAlarms() {
 		ServiceId: "svc-1",
 		Name:      "nightly",
 		Schedule:  &workspacev1.SetServiceAlarmRequest_Cron{Cron: "0 3 * * *"},
-		Channel:   "reports",
+		Endpoint:  "reports",
 		Event:     "report.due",
 	})
 	if err != nil {

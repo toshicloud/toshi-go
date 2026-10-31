@@ -21,7 +21,7 @@ type services struct {
 	workspacev1connect.UnimplementedSecretServiceHandler
 	workspacev1connect.UnimplementedWebhookServiceHandler
 	workspacev1connect.UnimplementedDisplayServiceHandler
-	workspacev1connect.UnimplementedChannelServiceHandler
+	workspacev1connect.UnimplementedEndpointServiceHandler
 	workspacev1connect.UnimplementedRecordingServiceHandler
 	workspacev1connect.UnimplementedVolumeServiceHandler
 	workspacev1connect.UnimplementedArtifactServiceHandler
@@ -42,6 +42,7 @@ type services struct {
 	workspacev1connect.UnimplementedTriggerServiceHandler
 	workspacev1connect.UnimplementedGrantServiceHandler
 	workspacev1connect.UnimplementedDomainServiceHandler
+	workspacev1connect.UnimplementedModelCredentialServiceHandler
 }
 
 // start mounts every service over TLS with HTTP/2.
@@ -63,7 +64,7 @@ func (f *Fake) start() {
 	mount(path, handler)
 	path, handler = workspacev1connect.NewDisplayServiceHandler(service, options)
 	mount(path, handler)
-	path, handler = workspacev1connect.NewChannelServiceHandler(service, options)
+	path, handler = workspacev1connect.NewEndpointServiceHandler(service, options)
 	mount(path, handler)
 	path, handler = workspacev1connect.NewRecordingServiceHandler(service, options)
 	mount(path, handler)
@@ -104,6 +105,8 @@ func (f *Fake) start() {
 	path, handler = workspacev1connect.NewGrantServiceHandler(service, options)
 	mount(path, handler)
 	path, handler = workspacev1connect.NewDomainServiceHandler(service, options)
+	mount(path, handler)
+	path, handler = workspacev1connect.NewModelCredentialServiceHandler(service, options)
 	mount(path, handler)
 
 	server := httptest.NewUnstartedServer(mux)

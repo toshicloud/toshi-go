@@ -506,7 +506,7 @@ func (s ServicesClient) ListActivations(ctx context.Context, req *workspacev1.Li
 }
 
 // CreateServiceShareLink mints a share link for one of a service's provided
-// names, the front channel's unless the request names another http channel.
+// names, the front endpoint's unless the request names another http endpoint.
 // The link is in this answer only.
 func (s ServicesClient) CreateServiceShareLink(ctx context.Context, req *workspacev1.CreateServiceShareLinkRequest) (*workspacev1.CreateServiceShareLinkResponse, error) {
 	resp, err := s.call.svc.CreateServiceShareLink(ctx, connect.NewRequest(req))
@@ -517,7 +517,7 @@ func (s ServicesClient) CreateServiceShareLink(ctx context.Context, req *workspa
 }
 
 // ListServiceShareLinks returns a service's share links, for all of its
-// channels, the oldest first and never with the link itself.
+// endpoints, the oldest first and never with the link itself.
 func (s ServicesClient) ListServiceShareLinks(ctx context.Context, req *workspacev1.ListServiceShareLinksRequest) (*workspacev1.ListServiceShareLinksResponse, error) {
 	resp, err := s.call.svc.ListServiceShareLinks(ctx, connect.NewRequest(req))
 	if err != nil {
@@ -547,7 +547,7 @@ func (s ServicesClient) RevokeServiceShareLink(ctx context.Context, req *workspa
 
 // SetAlarm creates or replaces the service's alarm with this name and
 // returns it. At each instant of its schedule the alarm publishes its event,
-// with its data, on one of the service's event channels. Replacing an alarm
+// with its data, on one of the service's event endpoints. Replacing an alarm
 // raises its generation and schedules it again from now.
 func (s ServicesClient) SetAlarm(ctx context.Context, req *workspacev1.SetServiceAlarmRequest) (*workspacev1.SetServiceAlarmResponse, error) {
 	resp, err := s.call.svc.SetServiceAlarm(ctx, connect.NewRequest(req))
@@ -577,7 +577,7 @@ func (s ServicesClient) ListAlarms(ctx context.Context, req *workspacev1.ListSer
 }
 
 // DeleteAlarm removes an alarm and its occurrences. Messages it already
-// published stay on the channel.
+// published stay on the endpoint.
 func (s ServicesClient) DeleteAlarm(ctx context.Context, req *workspacev1.DeleteServiceAlarmRequest) (*workspacev1.DeleteServiceAlarmResponse, error) {
 	resp, err := s.call.svc.DeleteServiceAlarm(ctx, connect.NewRequest(req))
 	if err != nil {
