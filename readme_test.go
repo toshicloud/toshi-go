@@ -17,31 +17,40 @@ import (
 // <dir>.ExampleName is in <dir>/example_test.go.
 var readmeMarker = regexp.MustCompile(`^<!-- (?:(\w+)\.)?(Example\w*) -->$`)
 
-// TestReadmeMatchesExamples proves each Go block of README.md is the body of
+// TestReadmeMatchesExamples proves each Go block of README.md and of the pages
+// of docs/ is the body of
 // the Example its marker names, ignoring indentation and the block's imports,
 // so the README shows code that compiles.
 func TestReadmeMatchesExamples(t *testing.T) {
-	blocks := readmeBlocks(t, "README.md")
-	if len(blocks) == 0 {
-		t.Fatal("README.md has no Go block")
+	pages, err := filepath.Glob("docs/*.md")
+	if err != nil {
+		t.Fatal(err)
 	}
 	bodies := map[string]map[string][]string{}
-	for _, b := range blocks {
-		if b.example == "" {
-			t.Errorf("README.md:%d: Go block without a <!-- ExampleName --> marker on the line before it", b.line)
-			continue
+	total := 0
+	for _, page := range append([]string{"README.md"}, pages...) {
+		blocks := readmeBlocks(t, page)
+		total += len(blocks)
+		for _, b := range blocks {
+			if b.example == "" {
+				t.Errorf("%s:%d: Go block without a <!-- ExampleName --> marker on the line before it", page, b.line)
+				continue
+			}
+			if _, ok := bodies[b.dir]; !ok {
+				bodies[b.dir] = exampleBodies(t, b.dir)
+			}
+			body, ok := bodies[b.dir][b.example]
+			if !ok {
+				t.Errorf("%s:%d: the marker names %s, which example_test.go does not define", page, b.line, b.example)
+				continue
+			}
+			if diff := lineDiff(normalize(withoutImports(b.code)), normalize(body)); diff != "" {
+				t.Errorf("%s:%d: the block differs from the body of %s: %s", page, b.line, b.example, diff)
+			}
 		}
-		if _, ok := bodies[b.dir]; !ok {
-			bodies[b.dir] = exampleBodies(t, b.dir)
-		}
-		body, ok := bodies[b.dir][b.example]
-		if !ok {
-			t.Errorf("README.md:%d: the marker names %s, which example_test.go does not define", b.line, b.example)
-			continue
-		}
-		if diff := lineDiff(normalize(withoutImports(b.code)), normalize(body)); diff != "" {
-			t.Errorf("README.md:%d: the block differs from the body of %s: %s", b.line, b.example, diff)
-		}
+	}
+	if total == 0 {
+		t.Fatal("README.md and docs/ have no Go block")
 	}
 }
 
