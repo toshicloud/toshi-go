@@ -366,9 +366,20 @@ func TestRetryMapCoversEveryProcedure(t *testing.T) {
 			service := services.Get(i)
 			methods := service.Methods()
 			for j := 0; j < methods.Len(); j++ {
-				procedure := "/" + string(service.FullName()) + "/" + string(methods.Get(j).Name())
-				if _, ok := procedureRetryClass[procedure]; !ok {
+				method := methods.Get(j)
+				procedure := "/" + string(service.FullName()) + "/" + string(method.Name())
+				class, ok := procedureRetryClass[procedure]
+				if !ok {
 					t.Errorf("%s is missing from procedureRetryClass", procedure)
+				}
+				// A unary write whose request takes a request_key is keyed, so
+				// the interceptor fills the key; OpenDisplaySession is the
+				// exception procedureRetryClass explains.
+				unary := !method.IsStreamingClient() && !method.IsStreamingServer()
+				takesKey := method.Input().Fields().ByName("request_key") != nil
+				if ok && unary && takesKey && class != retryKeyed &&
+					procedure != workspacev1connect.DisplayServiceOpenDisplaySessionProcedure {
+					t.Errorf("%s takes a request_key but is not retryKeyed", procedure)
 				}
 				seen++
 			}
