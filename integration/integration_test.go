@@ -6,6 +6,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
@@ -354,7 +355,7 @@ func TestIntegration(t *testing.T) {
 		// and the secret is input only.
 		updated, err := wide.Connection().UpdateConnection(ctx, connect.NewRequest(&workspacev1.UpdateConnectionRequest{
 			Connection: &workspacev1.Connection{Id: id, Target: &workspacev1.ConnectionTarget{
-				Url: "https://example.com/toshi-hooks", Secret: "whsec_c2RrLXRlc3Qtc2VjcmV0LTAwMDAwMDAw",
+				Url: "https://example.com/toshi-hooks", Secret: testWebhookSecret(),
 			}},
 			UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"target"}},
 		}))
@@ -939,4 +940,12 @@ func tail(b []byte, n int) string {
 		return string(b)
 	}
 	return string(b[len(b)-n:])
+}
+
+// testWebhookSecret returns a signing secret in the API's form, "whsec_" and
+// the base64 of 32 bytes, built at run time so no literal of that form sits in
+// the tree.
+func testWebhookSecret() string {
+	sum := sha256.Sum256([]byte("sdk-test-webhook-secret"))
+	return "whsec_" + base64.StdEncoding.EncodeToString(sum[:])
 }

@@ -2,6 +2,8 @@ package toshi_test
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/base64"
 	"testing"
 	"time"
 
@@ -145,7 +147,7 @@ func TestConnectionTargetThroughTheClient(t *testing.T) {
 	updated, err := client.Connection().UpdateConnection(ctx, connect.NewRequest(&workspacev1.UpdateConnectionRequest{
 		Connection: &workspacev1.Connection{
 			Id:     "con-1",
-			Target: &workspacev1.ConnectionTarget{Url: "https://example.com/hooks", Secret: "whsec_c2VjcmV0"},
+			Target: &workspacev1.ConnectionTarget{Url: "https://example.com/hooks", Secret: testWebhookSecret()},
 		},
 		UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"target"}},
 	}))
@@ -251,4 +253,12 @@ func TestTriggerResultThroughTheClient(t *testing.T) {
 	if result.GetMessage() != "exit status 3: boom" {
 		t.Errorf("the message is %q", result.GetMessage())
 	}
+}
+
+// testWebhookSecret returns a signing secret in the API's form, "whsec_" and
+// the base64 of 32 bytes, built at run time so no literal of that form sits in
+// the tree.
+func testWebhookSecret() string {
+	sum := sha256.Sum256([]byte("sdk-test-webhook-secret"))
+	return "whsec_" + base64.StdEncoding.EncodeToString(sum[:])
 }
