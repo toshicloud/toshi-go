@@ -42,6 +42,8 @@ const (
 var procedureRetryClass = map[string]retryClass{
 	workspacev1connect.AccountServiceGetAccountProcedure:                    retryRead,
 	workspacev1connect.AccountServiceListIdentitiesProcedure:                retryRead,
+	workspacev1connect.AccountServiceListSessionsProcedure:                  retryRead,
+	workspacev1connect.AccountServiceEndSessionProcedure:                    retryNone,
 	workspacev1connect.AccountServiceUnlinkIdentityProcedure:                retryNone,
 	workspacev1connect.ArtifactServiceGetArtifactDownloadURLProcedure:       retryRead,
 	workspacev1connect.ArtifactServiceGetArtifactProcedure:                  retryRead,
@@ -289,6 +291,7 @@ var procedureRetryClass = map[string]retryClass{
 	workspacev1connect.WorkspaceServiceCreateCheckoutSessionProcedure:       retryNone,
 	workspacev1connect.WorkspaceServiceDeleteWorkspaceProcedure:             retryNone,
 	workspacev1connect.WorkspaceServiceGetQueueTimesProcedure:               retryRead,
+	workspacev1connect.WorkspaceServiceGetStartWindowsProcedure:             retryRead,
 	workspacev1connect.WorkspaceServiceGetUsageProcedure:                    retryRead,
 	workspacev1connect.WorkspaceServiceGetVersionProcedure:                  retryRead,
 	workspacev1connect.WorkspaceServiceGetWorkflowUsageProcedure:            retryRead,
