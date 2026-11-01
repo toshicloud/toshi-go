@@ -13,6 +13,8 @@ var hookOnly = map[string]bool{
 	// AccountService
 	workspacev1connect.AccountServiceGetAccountProcedure:     true,
 	workspacev1connect.AccountServiceListIdentitiesProcedure: true,
+	workspacev1connect.AccountServiceListSessionsProcedure:   true,
+	workspacev1connect.AccountServiceEndSessionProcedure:     true,
 	workspacev1connect.AccountServiceUnlinkIdentityProcedure: true,
 	// ImageService
 	workspacev1connect.ImageServiceCreateImageProcedure: true,
@@ -277,6 +279,7 @@ var hookOnly = map[string]bool{
 	workspacev1connect.WorkspaceServiceListEgressIPsProcedure:               true,
 	workspacev1connect.WorkspaceServiceGetUsageProcedure:                    true,
 	workspacev1connect.WorkspaceServiceGetQueueTimesProcedure:               true,
+	workspacev1connect.WorkspaceServiceGetStartWindowsProcedure:             true,
 	workspacev1connect.WorkspaceServiceGetWorkflowUsageProcedure:            true,
 	workspacev1connect.WorkspaceServiceListPlansProcedure:                   true,
 	workspacev1connect.WorkspaceServiceCreateCheckoutSessionProcedure:       true,
