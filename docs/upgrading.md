@@ -42,5 +42,5 @@ code that passes options compiles unchanged.
 The module's major version follows the API's: `v1` will serve
 `toshi.workspace.v1`, and a `toshi.workspace.v2` gets a `/v2` module path.
 Until a Toshi release serves the API, the module stays at `v0.x`. `go.mod`
-pins the API module `go.toshicloud.io/api` at its tagged release `v0.4.1`.
+pins the API module `go.toshicloud.io/api` at its tagged release `v0.6.0`.
 
