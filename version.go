@@ -2,4 +2,4 @@ package toshi
 
 // Version is this module's version, without the leading v. The commit that
 // releases a version sets it.
-const Version = "0.8.0"
+const Version = "0.9.0"
