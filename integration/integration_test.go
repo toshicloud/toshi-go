@@ -41,6 +41,10 @@ const (
 	environment    = "production"
 )
 
+// TestIntegration runs against the binary TOSHI_INTEGRATION_BIN names and is
+// skipped when that is unset. The dev commands ("dev github serve" and
+// "dev github send") run through the binary TOSHI_INTEGRATION_CONTROL_BIN
+// names when it is set, and through TOSHI_INTEGRATION_BIN otherwise.
 func TestIntegration(t *testing.T) {
 	bin := os.Getenv("TOSHI_INTEGRATION_BIN")
 	if bin == "" {
@@ -49,6 +53,12 @@ func TestIntegration(t *testing.T) {
 	bin, err := filepath.Abs(bin)
 	if err != nil {
 		t.Fatal(err)
+	}
+	devBin := bin
+	if control := os.Getenv("TOSHI_INTEGRATION_CONTROL_BIN"); control != "" {
+		if devBin, err = filepath.Abs(control); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	// Before anything: the served commit.
@@ -86,7 +96,7 @@ func TestIntegration(t *testing.T) {
 
 	fakeLog := filepath.Join(dir, "fake.log")
 	serveLog := filepath.Join(dir, "serve.log")
-	startChild(t, fakeLog, nil, bin, "dev", "github", "serve",
+	startChild(t, fakeLog, nil, devBin, "dev", "github", "serve",
 		"--i-know-this-is-fake",
 		"--listen", fmt.Sprintf("127.0.0.1:%d", fakePort),
 		"--installation", installationID+":"+account,
@@ -108,7 +118,7 @@ func TestIntegration(t *testing.T) {
 	}
 
 	// Make a workspace through the documented dev GitHub flow.
-	send := run(t, nil, bin, "dev", "github", "send",
+	send := run(t, nil, devBin, "dev", "github", "send",
 		"--i-know-this-is-fake",
 		"--url", baseURL+"/webhooks/github",
 		"--ca-file", caPath,
