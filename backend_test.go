@@ -358,6 +358,7 @@ func TestRetryMapCoversEveryProcedure(t *testing.T) {
 		workspacev1.File_toshi_workspace_v1_triggers_proto,
 		workspacev1.File_toshi_workspace_v1_grants_proto,
 		workspacev1.File_toshi_workspace_v1_domains_proto,
+		workspacev1.File_toshi_workspace_v1_model_credentials_proto,
 	}
 	seen := 0
 	for _, file := range files {
@@ -381,12 +382,15 @@ func TestRetryMapCoversEveryProcedure(t *testing.T) {
 					procedure != workspacev1connect.DisplayServiceOpenDisplaySessionProcedure {
 					t.Errorf("%s takes a request_key but is not retryKeyed", procedure)
 				}
+				if ok && class == retryKeyed && !takesKey {
+					t.Errorf("%s is retryKeyed but its request has no request_key", procedure)
+				}
 				seen++
 			}
 		}
 	}
-	if seen != 257 {
-		t.Errorf("checked %d procedures, want 257", seen)
+	if seen != 262 {
+		t.Errorf("checked %d procedures, want 262", seen)
 	}
 }
 

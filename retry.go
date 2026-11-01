@@ -34,9 +34,11 @@ const (
 // write that takes a request_key, which the interceptor fills and keeps for
 // every try. OpenDisplaySession is the exception among the keyed writes: a
 // retry returns the session with no token, so the caller opens another one
-// itself. GetHostJobDebugAccess is the exception among the reads: it issues a
-// key the host gives out once per session, so a retry is refused the key the
-// first attempt already handed out.
+// itself. CreateModelCredential takes no request_key and answers
+// ALREADY_EXISTS to a repeated call, so it is never retried.
+// GetHostJobDebugAccess is the exception among the reads: it issues a key the
+// host gives out once per session, so a retry is refused the key the first
+// attempt already handed out.
 var procedureRetryClass = map[string]retryClass{
 	workspacev1connect.AccountServiceGetAccountProcedure:                    retryRead,
 	workspacev1connect.AccountServiceListIdentitiesProcedure:                retryRead,
@@ -107,7 +109,7 @@ var procedureRetryClass = map[string]retryClass{
 	workspacev1connect.ImageServiceGetImageProcedure:                        retryRead,
 	workspacev1connect.ImageServiceListImagesProcedure:                      retryRead,
 	workspacev1connect.ImageServiceUpdateImageProcedure:                     retryNone,
-	workspacev1connect.ModelCredentialServiceCreateModelCredentialProcedure: retryKeyed,
+	workspacev1connect.ModelCredentialServiceCreateModelCredentialProcedure: retryNone,
 	workspacev1connect.ModelCredentialServiceDeleteModelCredentialProcedure: retryNone,
 	workspacev1connect.ModelCredentialServiceGetModelCredentialProcedure:    retryRead,
 	workspacev1connect.ModelCredentialServiceListModelCredentialsProcedure:  retryRead,
