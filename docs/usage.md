@@ -6,8 +6,8 @@ A Go client for the Toshi Workspace API, `toshi.workspace.v1`.
 go get go.toshicloud.io/toshi
 ```
 
-v0.1.0 is under github.com/toshicloud/toshi-go and later versions use
-go.toshicloud.io/toshi.
+Before v0.2.0 this client was the module
+[github.com/toshicloud/toshi-go](https://github.com/toshicloud/toshi-go).
 
 
 <!-- ExampleNew -->
@@ -53,7 +53,7 @@ and revokes the share links of a service's provided names, keeps its alarms
 `Volume()`, `Artifact()`, `ArtifactUpload()`, `Workspace()`, `HostJob()`,
 `Host()`, `Token()`, `AuditEvent()`, `Filler()`, `StorageProvider()`,
 `Product()`, `Discovery()`, `Connection()`, `Role()`, `Trigger()`,
-`Grant()`, `Domain()`, `Account()` and `Image()` return the generated Connect clients of
+`Grant()`, `Domain()`, `Account()`, `Image()` and `ModelCredential()` return the generated Connect clients of
 their service; `Endpoint()` is `EndpointClient`, which spells out the service's
 calls.
 
