@@ -106,7 +106,7 @@ func New(opts ...Option) (*Client, error) {
 	api := headerClient{next: httpClient, token: token, userAgent: userAgent(cfg.product)}
 	scope := scopeInterceptor{project: cfg.project, environment: cfg.environment}
 	retry := retryInterceptor{policy: policy}
-	interceptors := append(cfg.interceptors, scope, retry, refusalInterceptor{})
+	interceptors := append(cfg.interceptors, scope, retry, refusalInterceptor{}, deprecationInterceptor{warn: cfg.warn})
 	options := append([]connect.ClientOption{connect.WithInterceptors(interceptors...)}, cfg.connectOptions...)
 
 	client := &Client{
