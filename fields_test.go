@@ -3,7 +3,6 @@ package toshi_test
 import (
 	"context"
 	"crypto/sha256"
-	"encoding/base64"
 	"testing"
 	"time"
 
@@ -17,6 +16,7 @@ import (
 
 	"go.toshicloud.io/toshi"
 	"go.toshicloud.io/toshi/toshitest"
+	"go.toshicloud.io/toshi/webhook"
 )
 
 // TestWebhookCursorThroughTheClient proves a webhook's expired cursor and
@@ -256,9 +256,9 @@ func TestTriggerResultThroughTheClient(t *testing.T) {
 }
 
 // testWebhookSecret returns a signing secret in the API's form, "whsec_" and
-// the base64 of 32 bytes, built at run time so no literal of that form sits in
-// the tree.
+// the base64 of 32 bytes, built at run time with webhook.FormatSecret so no
+// literal of that form sits in the tree.
 func testWebhookSecret() string {
 	sum := sha256.Sum256([]byte("sdk-test-webhook-secret"))
-	return "whsec_" + base64.StdEncoding.EncodeToString(sum[:])
+	return webhook.FormatSecret(sum[:])
 }

@@ -57,10 +57,48 @@ for _, job := range jobs.GetJobs() {
 
 `New` reads the server and token from `TOSHI_SERVER` and `TOSHI_TOKEN`; the [usage guide](docs/usage.md) continues from there.
 
+## Verify a webhook
+
+Toshi signs every webhook it sends. A receiver checks the signature on the
+raw body before it trusts the event:
+
+<!-- webhook.ExampleVerify -->
+```go
+import (
+	"io"
+	"log"
+	"net/http"
+	"os"
+	"time"
+
+	"go.toshicloud.io/toshi/webhook"
+)
+
+// The endpoint's secret, "whsec_" and base64, as Toshi gave it.
+secret := os.Getenv("TOSHI_WEBHOOK_SECRET")
+http.HandleFunc("/toshi/webhook", func(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "unreadable body", http.StatusBadRequest)
+		return
+	}
+	if err := webhook.Verify(r.Header, body, secret, time.Now()); err != nil {
+		http.Error(w, "unverified webhook", http.StatusUnauthorized)
+		return
+	}
+	// body is the event, exactly as Toshi sent it.
+	w.WriteHeader(http.StatusNoContent)
+})
+log.Fatal(http.ListenAndServe(":8080", nil))
+```
+
+[Webhooks](docs/webhooks.md) says what `Verify` checks and how it refuses.
+
 ## Documentation
 
 - [Usage](docs/usage.md): the client, options, retries, lists, errors, interceptors and operator calls
 - [Testing with toshitest](docs/testing.md): the fake Toshi for your tests
+- [Webhooks](docs/webhooks.md): verifying the webhooks Toshi sends
 - [Generated code, upgrading and versions](docs/upgrading.md)
 - [Package reference](https://pkg.go.dev/go.toshicloud.io/toshi) on pkg.go.dev
 - [The Toshi API](https://github.com/toshicloud/toshi-api) the client calls
