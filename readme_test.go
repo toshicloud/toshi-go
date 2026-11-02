@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -18,15 +19,16 @@ import (
 var readmeMarker = regexp.MustCompile(`^<!-- (?:(\w+)\.)?(Example\w*) -->$`)
 
 // TestReadmeMatchesExamples proves each Go block of README.md and of the pages
-// of docs/ is the body of
-// the Example its marker names, ignoring indentation and the block's imports,
-// so the README shows code that compiles.
+// of docs/ is the Example its marker names: its import declaration lists
+// exactly the packages the Example's body uses, and the rest is that body,
+// ignoring indentation. A block is then a program's imports and the body of
+// its main, and compiles as it stands.
 func TestReadmeMatchesExamples(t *testing.T) {
 	pages, err := filepath.Glob("docs/*.md")
 	if err != nil {
 		t.Fatal(err)
 	}
-	bodies := map[string]map[string][]string{}
+	bodies := map[string]map[string]example{}
 	total := 0
 	for _, page := range append([]string{"README.md"}, pages...) {
 		blocks := readmeBlocks(t, page)
@@ -39,12 +41,16 @@ func TestReadmeMatchesExamples(t *testing.T) {
 			if _, ok := bodies[b.dir]; !ok {
 				bodies[b.dir] = exampleBodies(t, b.dir)
 			}
-			body, ok := bodies[b.dir][b.example]
+			ex, ok := bodies[b.dir][b.example]
 			if !ok {
 				t.Errorf("%s:%d: the marker names %s, which example_test.go does not define", page, b.line, b.example)
 				continue
 			}
-			if diff := lineDiff(normalize(withoutImports(b.code)), normalize(body)); diff != "" {
+			imports, code := splitImports(t, page, b)
+			if !slices.Equal(imports, ex.imports) {
+				t.Errorf("%s:%d: the block imports %q; the body of %s uses %q", page, b.line, imports, b.example, ex.imports)
+			}
+			if diff := lineDiff(normalize(code), normalize(ex.body)); diff != "" {
 				t.Errorf("%s:%d: the block differs from the body of %s: %s", page, b.line, b.example, diff)
 			}
 		}
@@ -97,9 +103,16 @@ func readmeBlocks(t *testing.T, path string) []readmeBlock {
 	return blocks
 }
 
-// exampleBodies returns the lines of each Example function's body in
-// <dir>/example_test.go.
-func exampleBodies(t *testing.T, dir string) map[string][]string {
+// example is one Example function: the lines of its body, and the imports of
+// its file that the body uses, sorted, each as an import declaration writes
+// it (a path, or a name and a path).
+type example struct {
+	body    []string
+	imports []string
+}
+
+// exampleBodies returns each Example function of <dir>/example_test.go.
+func exampleBodies(t *testing.T, dir string) map[string]example {
 	t.Helper()
 	path := filepath.Join(dir, "example_test.go")
 	src, err := os.ReadFile(path)
@@ -111,7 +124,12 @@ func exampleBodies(t *testing.T, dir string) map[string][]string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	bodies := map[string][]string{}
+	// The file's imports by the name its code calls each package by.
+	byName := map[string]*ast.ImportSpec{}
+	for _, spec := range file.Imports {
+		byName[importName(spec)] = spec
+	}
+	bodies := map[string]example{}
 	for _, decl := range file.Decls {
 		fn, ok := decl.(*ast.FuncDecl)
 		if !ok || fn.Body == nil || !strings.HasPrefix(fn.Name.Name, "Example") {
@@ -119,31 +137,95 @@ func exampleBodies(t *testing.T, dir string) map[string][]string {
 		}
 		start := fset.Position(fn.Body.Lbrace).Offset + 1
 		end := fset.Position(fn.Body.Rbrace).Offset
-		bodies[fn.Name.Name] = strings.Split(string(src[start:end]), "\n")
+		used := map[string]bool{}
+		ast.Inspect(fn.Body, func(n ast.Node) bool {
+			sel, ok := n.(*ast.SelectorExpr)
+			if !ok {
+				return true
+			}
+			// A package name resolves to no object in the file.
+			if id, ok := sel.X.(*ast.Ident); ok && id.Obj == nil {
+				if spec, ok := byName[id.Name]; ok {
+					used[importText(spec)] = true
+				}
+			}
+			return true
+		})
+		imports := make([]string, 0, len(used))
+		for text := range used {
+			imports = append(imports, text)
+		}
+		slices.Sort(imports)
+		bodies[fn.Name.Name] = example{body: strings.Split(string(src[start:end]), "\n"), imports: imports}
 	}
 	return bodies
 }
 
-// withoutImports drops the import declaration that opens a README block.
-func withoutImports(lines []string) []string {
+// importName is the name code calls an imported package by: its explicit
+// name, else its path's name.
+func importName(spec *ast.ImportSpec) string {
+	if spec.Name != nil {
+		return spec.Name.Name
+	}
+	return pathName(spec)
+}
+
+// pathName is the last element of an import's path that is not a major
+// version, the name its package is declared with.
+func pathName(spec *ast.ImportSpec) string {
+	parts := strings.Split(strings.Trim(spec.Path.Value, `"`), "/")
+	last := parts[len(parts)-1]
+	if len(parts) > 1 && regexp.MustCompile(`^v[0-9]+$`).MatchString(last) {
+		last = parts[len(parts)-2]
+	}
+	return last
+}
+
+// importText is an import as a declaration writes it: the path, after an
+// explicit name that differs from the path's name.
+func importText(spec *ast.ImportSpec) string {
+	if spec.Name != nil && spec.Name.Name != pathName(spec) {
+		return spec.Name.Name + " " + spec.Path.Value
+	}
+	return spec.Path.Value
+}
+
+// splitImports splits a README block into the imports its opening import
+// declaration lists, sorted as exampleBodies sorts them, and the lines after
+// that declaration. A block without one imports nothing.
+func splitImports(t *testing.T, page string, b readmeBlock) ([]string, []string) {
+	t.Helper()
+	lines := b.code
 	i := 0
 	for i < len(lines) && strings.TrimSpace(lines[i]) == "" {
 		i++
 	}
 	if i == len(lines) {
-		return nil
+		return nil, nil
 	}
-	first := strings.TrimSpace(lines[i])
-	switch {
+	end := i
+	switch first := strings.TrimSpace(lines[i]); {
 	case first == "import (":
-		for i < len(lines) && strings.TrimSpace(lines[i]) != ")" {
-			i++
+		for end < len(lines) && strings.TrimSpace(lines[end]) != ")" {
+			end++
 		}
-		return lines[min(i+1, len(lines)):]
+		end = min(end+1, len(lines))
 	case strings.HasPrefix(first, "import "):
-		return lines[i+1:]
+		end = i + 1
+	default:
+		return nil, lines
 	}
-	return lines
+	src := "package p\n" + strings.Join(lines[i:end], "\n")
+	file, err := parser.ParseFile(token.NewFileSet(), page, src, parser.ImportsOnly)
+	if err != nil {
+		t.Fatalf("%s:%d: the block's import declaration does not parse: %v", page, b.line, err)
+	}
+	imports := make([]string, 0, len(file.Imports))
+	for _, spec := range file.Imports {
+		imports = append(imports, importText(spec))
+	}
+	slices.Sort(imports)
+	return imports, lines[end:]
 }
 
 // normalize drops each line's indentation and trailing space, and the blank

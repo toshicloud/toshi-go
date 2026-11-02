@@ -195,6 +195,18 @@ type of `Reason`, the reason of the refusal's `ErrorInfo` detail, and
 
 <!-- ExampleProductError -->
 ```go
+import (
+	"context"
+	"errors"
+	"fmt"
+	"log"
+
+	"connectrpc.com/connect"
+	"go.toshicloud.io/api/workspacev1"
+	"go.toshicloud.io/toshi"
+	"google.golang.org/protobuf/proto"
+)
+
 ctx := context.Background()
 client, err := toshi.New()
 if err != nil {
