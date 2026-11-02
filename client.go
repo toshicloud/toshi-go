@@ -17,7 +17,6 @@ import (
 
 	"connectrpc.com/connect"
 
-	workspacev1 "go.toshicloud.io/api/workspacev1"
 	workspacev1connect "go.toshicloud.io/api/workspacev1/workspacev1connect"
 )
 
@@ -42,25 +41,9 @@ func (c *Client) Workload() *WorkloadClient { return c.workload }
 // Endpoint is the EndpointService client, its server stream included.
 func (c *Client) Endpoint() EndpointClient { return c.endpoint }
 
-// EndpointClient is the calls of EndpointService.
-type EndpointClient interface {
-	CreateEndpoint(context.Context, *connect.Request[workspacev1.CreateEndpointRequest]) (*connect.Response[workspacev1.CreateEndpointResponse], error)
-	ListEndpoints(context.Context, *connect.Request[workspacev1.ListEndpointsRequest]) (*connect.Response[workspacev1.ListEndpointsResponse], error)
-	GetEndpoint(context.Context, *connect.Request[workspacev1.GetEndpointRequest]) (*connect.Response[workspacev1.GetEndpointResponse], error)
-	GetEndpointPolicy(context.Context, *connect.Request[workspacev1.GetEndpointPolicyRequest]) (*connect.Response[workspacev1.GetEndpointPolicyResponse], error)
-	SetEndpointPolicy(context.Context, *connect.Request[workspacev1.SetEndpointPolicyRequest]) (*connect.Response[workspacev1.SetEndpointPolicyResponse], error)
-	ListEndpointRequests(context.Context, *connect.Request[workspacev1.ListEndpointRequestsRequest]) (*connect.Response[workspacev1.ListEndpointRequestsResponse], error)
-	GetEndpointRequest(context.Context, *connect.Request[workspacev1.GetEndpointRequestRequest]) (*connect.Response[workspacev1.GetEndpointRequestResponse], error)
-	ExportEndpointLog(context.Context, *connect.Request[workspacev1.ExportEndpointLogRequest]) (*connect.ServerStreamForClient[workspacev1.ExportEndpointLogResponse], error)
-	CreateEndpointConnectToken(context.Context, *connect.Request[workspacev1.CreateEndpointConnectTokenRequest]) (*connect.Response[workspacev1.CreateEndpointConnectTokenResponse], error)
-	RevokeEndpointConnectToken(context.Context, *connect.Request[workspacev1.RevokeEndpointConnectTokenRequest]) (*connect.Response[workspacev1.RevokeEndpointConnectTokenResponse], error)
-	DeleteEndpoint(context.Context, *connect.Request[workspacev1.DeleteEndpointRequest]) (*connect.Response[workspacev1.DeleteEndpointResponse], error)
-	ListForwards(context.Context, *connect.Request[workspacev1.ListForwardsRequest]) (*connect.Response[workspacev1.ListForwardsResponse], error)
-	GetTunnel(context.Context, *connect.Request[workspacev1.GetTunnelRequest]) (*connect.Response[workspacev1.GetTunnelResponse], error)
-	SendEndpointMessage(context.Context, *connect.Request[workspacev1.SendEndpointMessageRequest]) (*connect.Response[workspacev1.SendEndpointMessageResponse], error)
-	TailEndpointMessages(context.Context, *connect.Request[workspacev1.TailEndpointMessagesRequest]) (*connect.ServerStreamForClient[workspacev1.TailEndpointMessagesResponse], error)
-	ReplayEndpointMessage(context.Context, *connect.Request[workspacev1.ReplayEndpointMessageRequest]) (*connect.Response[workspacev1.ReplayEndpointMessageResponse], error)
-}
+// EndpointClient is the EndpointService client; it follows the generated
+// workspacev1connect.EndpointServiceClient.
+type EndpointClient = workspacev1connect.EndpointServiceClient
 
 // New builds a Client from opts, then from the environment. It returns an
 // error when no server or no token is given, or when a file it names cannot
