@@ -109,6 +109,13 @@ and `MaxBackoff`, where a zero value takes the default. `WithRetryPolicy`
 sets it, and `DefaultRetryPolicy` returns the default — five attempts, a
 200 ms initial backoff and a 10 s cap.
 
+Whether a call is retried comes from its generated descriptor, so a call a
+newer API adds follows the same rule: a stream is not retried, a call whose
+request has a `request_key` field is retried with that key, a call whose
+`toshi.permission` level is `read` is retried, and no other call is.
+`OpenDisplaySession` takes a request key but is not retried: a retry
+returns the session the first call opened without its token.
+
 ## Tokens that change
 
 `WithTokenSource` gives the client a function it calls for the token of
@@ -300,6 +307,22 @@ Every request carries the User-Agent
 `toshi-go/0.4.0 connect-go/1.21.1 (go1.26.0)`. `WithUserAgent("myapp/1.2")`
 puts your product in front: `myapp/1.2 toshi-go/0.4.0 ...`. `toshi.Version`
 is this module's version.
+
+## Deprecated calls
+
+A call the server marks deprecated answers with a `Deprecation` header
+(RFC 9745), and with a `Sunset` header (RFC 8594) once the call has a
+removal date. The client then warns once per call per process, naming the
+call, the dates and the page the `Link` header with `rel="deprecation"`
+names:
+
+```text
+toshi: /toshi.workspace.v1.SecretService/ListSecrets is deprecated since 2026-01-01 and is removed after 2026-07-01; see https://example.com/docs/deprecations
+```
+
+The warning goes to standard error, or to the function `WithWarn` sets, for
+example `toshi.WithWarn(func(message string) { logger.Warn(message) })`.
+The call itself, and its answer or error, are unchanged.
 
 ## Operator calls
 

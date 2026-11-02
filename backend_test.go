@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"google.golang.org/protobuf/reflect/protoreflect"
 
 	workspacev1 "go.toshicloud.io/api/workspacev1"
 	workspacev1connect "go.toshicloud.io/api/workspacev1/workspacev1connect"
@@ -328,70 +327,6 @@ func newTestClient(t *testing.T, server *testServer, opts ...Option) *Client {
 		t.Fatalf("New: %v", err)
 	}
 	return client
-}
-
-func TestRetryMapCoversEveryProcedure(t *testing.T) {
-	files := []protoreflect.FileDescriptor{
-		workspacev1.File_toshi_workspace_v1_workspace_proto,
-		workspacev1.File_toshi_workspace_v1_workloads_proto,
-		workspacev1.File_toshi_workspace_v1_secrets_proto,
-		workspacev1.File_toshi_workspace_v1_projects_proto,
-		workspacev1.File_toshi_workspace_v1_webhook_proto,
-		workspacev1.File_toshi_workspace_v1_display_proto,
-		workspacev1.File_toshi_workspace_v1_endpoints_proto,
-		workspacev1.File_toshi_workspace_v1_recordings_proto,
-		workspacev1.File_toshi_workspace_v1_volumes_proto,
-		workspacev1.File_toshi_workspace_v1_account_proto,
-		workspacev1.File_toshi_workspace_v1_artifacts_proto,
-		workspacev1.File_toshi_workspace_v1_audit_events_proto,
-		workspacev1.File_toshi_workspace_v1_fillers_proto,
-		workspacev1.File_toshi_workspace_v1_hostjobs_proto,
-		workspacev1.File_toshi_workspace_v1_hosts_proto,
-		workspacev1.File_toshi_workspace_v1_storage_providers_proto,
-		workspacev1.File_toshi_workspace_v1_tokens_proto,
-		workspacev1.File_toshi_workspace_v1_workspace_service_proto,
-		workspacev1.File_toshi_workspace_v1_products_proto,
-		workspacev1.File_toshi_workspace_v1_discovery_proto,
-		workspacev1.File_toshi_workspace_v1_connections_proto,
-		workspacev1.File_toshi_workspace_v1_images_proto,
-		workspacev1.File_toshi_workspace_v1_roles_proto,
-		workspacev1.File_toshi_workspace_v1_triggers_proto,
-		workspacev1.File_toshi_workspace_v1_grants_proto,
-		workspacev1.File_toshi_workspace_v1_domains_proto,
-		workspacev1.File_toshi_workspace_v1_model_credentials_proto,
-	}
-	seen := 0
-	for _, file := range files {
-		services := file.Services()
-		for i := 0; i < services.Len(); i++ {
-			service := services.Get(i)
-			methods := service.Methods()
-			for j := 0; j < methods.Len(); j++ {
-				method := methods.Get(j)
-				procedure := "/" + string(service.FullName()) + "/" + string(method.Name())
-				class, ok := procedureRetryClass[procedure]
-				if !ok {
-					t.Errorf("%s is missing from procedureRetryClass", procedure)
-				}
-				// A unary write whose request takes a request_key is keyed, so
-				// the interceptor fills the key; OpenDisplaySession is the
-				// exception procedureRetryClass explains.
-				unary := !method.IsStreamingClient() && !method.IsStreamingServer()
-				takesKey := method.Input().Fields().ByName("request_key") != nil
-				if ok && unary && takesKey && class != retryKeyed &&
-					procedure != workspacev1connect.DisplayServiceOpenDisplaySessionProcedure {
-					t.Errorf("%s takes a request_key but is not retryKeyed", procedure)
-				}
-				if ok && class == retryKeyed && !takesKey {
-					t.Errorf("%s is retryKeyed but its request has no request_key", procedure)
-				}
-				seen++
-			}
-		}
-	}
-	if seen != 272 {
-		t.Errorf("checked %d procedures, want 272", seen)
-	}
 }
 
 func TestRootCAs(t *testing.T) {

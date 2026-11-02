@@ -35,6 +35,7 @@ type config struct {
 	product        string
 	interceptors   []connect.Interceptor
 	connectOptions []connect.ClientOption
+	warn           func(message string)
 }
 
 // WithServer sets the control plane's base URL. Without it New reads
@@ -127,6 +128,14 @@ func WithConnectOptions(opts ...connect.ClientOption) Option {
 // adds nothing.
 func WithUserAgent(product string) Option {
 	return optionFunc(func(c *config) { c.product = product })
+}
+
+// WithWarn sets the function that receives the warning a deprecated call
+// gets, once per call per process: when an answer carries a Deprecation or
+// Sunset header, the warning names the call, the dates and the deprecation
+// link. Without it, or with nil, the warning is written to standard error.
+func WithWarn(warn func(message string)) Option {
+	return optionFunc(func(c *config) { c.warn = warn })
 }
 
 // RetryPolicy says how often and how long a call is retried. MaxAttempts
