@@ -11,19 +11,22 @@ from them:
   [Connect](https://connectrpc.com/docs/go/getting-started) client for each
   service.
 
-This module generates no copy of its own. Protobuf for Go refuses to
+This module generates no protobuf code of its own. Protobuf for Go refuses to
 start a program that registers the same `.proto` file twice, so a program
 that imports both modules links one copy. `go.mod` names the API module
 version; moving to another is one pull request that changes `go.mod` and
-the code that follows it.
+the code that follows it. `go generate ./...` writes `services_gen.go`, the
+accessor of each service, from the API's descriptors.
 
-Generated code takes issues, not pull requests. This module holds none to
-edit: every generated file of the API module starts with Go's
-`// Code generated ... DO NOT EDIT.` line, and a change to one is made in
-the protos of [toshi-api](https://github.com/toshicloud/toshi-api), which
-generate it again. Open an issue there for a change to a message or a
-client; the regenerated code reaches this module as a new version, taken
-with `go get go.toshicloud.io/api@<version>` and `go mod tidy`.
+Generated code takes issues, not pull requests. Every generated file starts
+with Go's `// Code generated ... DO NOT EDIT.` line and is never edited by
+hand. The API module's files change in the protos of
+[toshi-api](https://github.com/toshicloud/toshi-api), which generate them
+again: open an issue there for a change to a message or a client. The
+regenerated code reaches this module as a new version, taken with
+`go get go.toshicloud.io/api@<version>` and `go mod tidy`, followed by
+`go generate ./...` for this module's `services_gen.go` and `version.go`;
+`scripts/check.sh` fails when they differ from what it writes.
 
 ## Upgrading
 
@@ -50,5 +53,6 @@ code that passes options compiles unchanged.
 The module's major version follows the API's: `v1` will serve
 `toshi.workspace.v1`, and a `toshi.workspace.v2` gets a `/v2` module path.
 Until a Toshi release serves the API, the module stays at `v0.x`. `go.mod`
-pins the API module `go.toshicloud.io/api` at its tagged release `v0.9.0`.
+names the API module version `go.toshicloud.io/api`, and `version.go` is
+generated from that module's `VERSION` file by `go generate ./...`.
 

@@ -6,6 +6,17 @@ cd "$root"
 
 golangci_lint_version="v2.14.0"
 
+# The generated files must match what go generate writes, so a change to the
+# API's descriptors or VERSION reaches them in the same commit.
+generated="services_gen.go version.go"
+before="$(sha256sum $generated 2>/dev/null || true)"
+go generate ./...
+after="$(sha256sum $generated 2>/dev/null || true)"
+if [ "$before" != "$after" ]; then
+  echo "services_gen.go or version.go differs from what go generate writes; run go generate ./... and commit the result" >&2
+  exit 1
+fi
+
 go vet ./...
 
 deps="$(go list -deps ./...)"

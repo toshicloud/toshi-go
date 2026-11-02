@@ -1,3 +1,5 @@
+//go:generate go run ./internal/gen
+
 package toshi
 
 import (
@@ -25,33 +27,10 @@ import (
 // by New is the only way to get one, so every call goes through the client's
 // authentication, scope and retry.
 type Client struct {
-	workload        *WorkloadClient
-	project         workspacev1connect.ProjectServiceClient
-	secret          workspacev1connect.SecretServiceClient
-	webhook         workspacev1connect.WebhookServiceClient
-	display         workspacev1connect.DisplayServiceClient
-	endpoint        EndpointClient
-	recording       workspacev1connect.RecordingServiceClient
-	volume          workspacev1connect.VolumeServiceClient
-	artifact        workspacev1connect.ArtifactServiceClient
-	artifactUpload  workspacev1connect.ArtifactUploadServiceClient
-	workspace       workspacev1connect.WorkspaceServiceClient
-	hostJob         workspacev1connect.HostJobServiceClient
-	host            workspacev1connect.HostServiceClient
-	token           workspacev1connect.TokenServiceClient
-	auditEvent      workspacev1connect.AuditEventServiceClient
-	filler          workspacev1connect.FillerServiceClient
-	storageProvider workspacev1connect.StorageProviderServiceClient
-	product         workspacev1connect.ProductServiceClient
-	discovery       workspacev1connect.DiscoveryServiceClient
-	connection      workspacev1connect.ConnectionServiceClient
-	account         workspacev1connect.AccountServiceClient
-	image           workspacev1connect.ImageServiceClient
-	role            workspacev1connect.RoleServiceClient
-	trigger         workspacev1connect.TriggerServiceClient
-	grant           workspacev1connect.GrantServiceClient
-	domain          workspacev1connect.DomainServiceClient
-	modelCredential workspacev1connect.ModelCredentialServiceClient
+	services
+
+	workload *WorkloadClient
+	endpoint EndpointClient
 
 	retry RetryPolicy
 }
@@ -60,89 +39,8 @@ type Client struct {
 // a service's, and the calls that span the three.
 func (c *Client) Workload() *WorkloadClient { return c.workload }
 
-// Project is the ProjectService client.
-func (c *Client) Project() workspacev1connect.ProjectServiceClient { return c.project }
-
-// Secret is the SecretService client.
-func (c *Client) Secret() workspacev1connect.SecretServiceClient { return c.secret }
-
-// Webhook is the WebhookService client.
-func (c *Client) Webhook() workspacev1connect.WebhookServiceClient { return c.webhook }
-
-// Display is the DisplayService client.
-func (c *Client) Display() workspacev1connect.DisplayServiceClient { return c.display }
-
 // Endpoint is the EndpointService client, its server stream included.
 func (c *Client) Endpoint() EndpointClient { return c.endpoint }
-
-// Recording is the RecordingService client.
-func (c *Client) Recording() workspacev1connect.RecordingServiceClient { return c.recording }
-
-// Volume is the VolumeService client.
-func (c *Client) Volume() workspacev1connect.VolumeServiceClient { return c.volume }
-
-// Artifact is the ArtifactService client.
-func (c *Client) Artifact() workspacev1connect.ArtifactServiceClient { return c.artifact }
-
-// ArtifactUpload is the ArtifactUploadService client.
-func (c *Client) ArtifactUpload() workspacev1connect.ArtifactUploadServiceClient {
-	return c.artifactUpload
-}
-
-// Workspace is the WorkspaceService client.
-func (c *Client) Workspace() workspacev1connect.WorkspaceServiceClient { return c.workspace }
-
-// HostJob is the HostJobService client.
-func (c *Client) HostJob() workspacev1connect.HostJobServiceClient { return c.hostJob }
-
-// Host is the HostService client.
-func (c *Client) Host() workspacev1connect.HostServiceClient { return c.host }
-
-// Token is the TokenService client.
-func (c *Client) Token() workspacev1connect.TokenServiceClient { return c.token }
-
-// AuditEvent is the AuditEventService client.
-func (c *Client) AuditEvent() workspacev1connect.AuditEventServiceClient { return c.auditEvent }
-
-// Filler is the FillerService client.
-func (c *Client) Filler() workspacev1connect.FillerServiceClient { return c.filler }
-
-// StorageProvider is the StorageProviderService client.
-func (c *Client) StorageProvider() workspacev1connect.StorageProviderServiceClient {
-	return c.storageProvider
-}
-
-// Product is the ProductService client.
-func (c *Client) Product() workspacev1connect.ProductServiceClient { return c.product }
-
-// Discovery is the DiscoveryService client.
-func (c *Client) Discovery() workspacev1connect.DiscoveryServiceClient { return c.discovery }
-
-// Connection is the ConnectionService client.
-func (c *Client) Connection() workspacev1connect.ConnectionServiceClient { return c.connection }
-
-// Account is the AccountService client.
-func (c *Client) Account() workspacev1connect.AccountServiceClient { return c.account }
-
-// Image is the ImageService client.
-func (c *Client) Image() workspacev1connect.ImageServiceClient { return c.image }
-
-// Role is the RoleService client.
-func (c *Client) Role() workspacev1connect.RoleServiceClient { return c.role }
-
-// Trigger is the TriggerService client.
-func (c *Client) Trigger() workspacev1connect.TriggerServiceClient { return c.trigger }
-
-// Grant is the GrantService client.
-func (c *Client) Grant() workspacev1connect.GrantServiceClient { return c.grant }
-
-// Domain is the DomainService client.
-func (c *Client) Domain() workspacev1connect.DomainServiceClient { return c.domain }
-
-// ModelCredential is the ModelCredentialService client.
-func (c *Client) ModelCredential() workspacev1connect.ModelCredentialServiceClient {
-	return c.modelCredential
-}
 
 // EndpointClient is the calls of EndpointService.
 type EndpointClient interface {
@@ -212,33 +110,9 @@ func New(opts ...Option) (*Client, error) {
 	options := append([]connect.ClientOption{connect.WithInterceptors(interceptors...)}, cfg.connectOptions...)
 
 	client := &Client{
-		project:         workspacev1connect.NewProjectServiceClient(api, server, options...),
-		secret:          workspacev1connect.NewSecretServiceClient(api, server, options...),
-		webhook:         workspacev1connect.NewWebhookServiceClient(api, server, options...),
-		display:         workspacev1connect.NewDisplayServiceClient(api, server, options...),
-		endpoint:        workspacev1connect.NewEndpointServiceClient(api, server, options...),
-		recording:       workspacev1connect.NewRecordingServiceClient(api, server, options...),
-		volume:          workspacev1connect.NewVolumeServiceClient(api, server, options...),
-		artifact:        workspacev1connect.NewArtifactServiceClient(api, server, options...),
-		artifactUpload:  workspacev1connect.NewArtifactUploadServiceClient(api, server, options...),
-		workspace:       workspacev1connect.NewWorkspaceServiceClient(api, server, options...),
-		hostJob:         workspacev1connect.NewHostJobServiceClient(api, server, options...),
-		host:            workspacev1connect.NewHostServiceClient(api, server, options...),
-		token:           workspacev1connect.NewTokenServiceClient(api, server, options...),
-		auditEvent:      workspacev1connect.NewAuditEventServiceClient(api, server, options...),
-		filler:          workspacev1connect.NewFillerServiceClient(api, server, options...),
-		storageProvider: workspacev1connect.NewStorageProviderServiceClient(api, server, options...),
-		product:         workspacev1connect.NewProductServiceClient(api, server, options...),
-		discovery:       workspacev1connect.NewDiscoveryServiceClient(api, server, options...),
-		connection:      workspacev1connect.NewConnectionServiceClient(api, server, options...),
-		account:         workspacev1connect.NewAccountServiceClient(api, server, options...),
-		image:           workspacev1connect.NewImageServiceClient(api, server, options...),
-		role:            workspacev1connect.NewRoleServiceClient(api, server, options...),
-		trigger:         workspacev1connect.NewTriggerServiceClient(api, server, options...),
-		grant:           workspacev1connect.NewGrantServiceClient(api, server, options...),
-		domain:          workspacev1connect.NewDomainServiceClient(api, server, options...),
-		modelCredential: workspacev1connect.NewModelCredentialServiceClient(api, server, options...),
-		retry:           policy,
+		services: newServices(api, server, options...),
+		endpoint: workspacev1connect.NewEndpointServiceClient(api, server, options...),
+		retry:    policy,
 	}
 	workload := newWorkloadClient(client, workspacev1connect.NewWorkloadServiceClient(api, server, options...))
 	client.workload = workload
