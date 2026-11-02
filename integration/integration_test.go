@@ -851,7 +851,9 @@ func waitReady(t *testing.T, client *http.Client, url string, timeout time.Durat
 	t.Fatalf("%s did not become ready", url)
 }
 
-// waitTenant waits for the installation's tenant to appear.
+// waitTenant waits for the installation's workspace to appear in the
+// workspace list, read under "workspaces" and, from an older toshi, under
+// "tenants".
 func waitTenant(t *testing.T, bin string, env map[string]string, tenant string, timeout time.Duration) {
 	t.Helper()
 	deadline := time.Now().Add(timeout)
@@ -859,13 +861,15 @@ func waitTenant(t *testing.T, bin string, env map[string]string, tenant string, 
 	for time.Now().Before(deadline) {
 		out := runNoFail(bin, env, "workspace", "list", "--json")
 		last = out
+		type listed struct {
+			ID string `json:"id"`
+		}
 		var payload struct {
-			Tenants []struct {
-				ID string `json:"id"`
-			} `json:"tenants"`
+			Workspaces []listed `json:"workspaces"`
+			Tenants    []listed `json:"tenants"`
 		}
 		if err := json.Unmarshal([]byte(out), &payload); err == nil {
-			for _, got := range payload.Tenants {
+			for _, got := range append(payload.Workspaces, payload.Tenants...) {
 				if got.ID == tenant {
 					return
 				}
