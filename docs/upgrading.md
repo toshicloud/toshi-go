@@ -17,6 +17,14 @@ that imports both modules links one copy. `go.mod` names the API module
 version; moving to another is one pull request that changes `go.mod` and
 the code that follows it.
 
+Generated code takes issues, not pull requests. This module holds none to
+edit: every generated file of the API module starts with Go's
+`// Code generated ... DO NOT EDIT.` line, and a change to one is made in
+the protos of [toshi-api](https://github.com/toshicloud/toshi-api), which
+generate it again. Open an issue there for a change to a message or a
+client; the regenerated code reaches this module as a new version, taken
+with `go get go.toshicloud.io/api@<version>` and `go mod tidy`.
+
 ## Upgrading
 
 The API module moved to `go.toshicloud.io/api`; v0.3.0 is the first release
