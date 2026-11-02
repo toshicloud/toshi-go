@@ -1,7 +1,9 @@
 package toshitest
 
 import (
+	"context"
 	"reflect"
+	"sort"
 	"strings"
 	"testing"
 
@@ -12,8 +14,9 @@ import (
 )
 
 // TestEveryProcedureIsAnswered proves every procedure of the Workspace API is
-// either answered by the state machine or listed as hook-only, and that every
-// service is mounted.
+// either answered by the state machine or answered UNIMPLEMENTED until a test
+// hooks it, that every built-in names a procedure the API defines with the
+// right stream type, and that every service is mounted.
 func TestEveryProcedureIsAnswered(t *testing.T) {
 	tt := New(t)
 	if len(apiProcedures) == 0 {
@@ -33,20 +36,25 @@ func TestEveryProcedureIsAnswered(t *testing.T) {
 		builtin[name] = known.streamType
 	}
 
+	unanswered := make(map[string]bool)
+	for _, name := range tt.unanswered() {
+		unanswered[name] = true
+	}
+
 	for name, known := range apiProcedures {
 		kind, isBuiltin := builtin[name]
 		switch {
-		case isBuiltin && hookOnly[name]:
-			t.Errorf("%s is both built in and listed as hook-only", name)
+		case isBuiltin && unanswered[name]:
+			t.Errorf("%s is both built in and unanswered", name)
 		case isBuiltin && kind != known.streamType:
 			t.Errorf("%s is built in as %s; the API defines %s", name, kindName(kind), kindName(known.streamType))
-		case !isBuiltin && !hookOnly[name]:
-			t.Errorf("%s is neither built in nor listed as hook-only", name)
+		case !isBuiltin && !unanswered[name]:
+			t.Errorf("%s is neither built in nor unanswered", name)
 		}
 	}
-	for name := range hookOnly {
+	for name := range builtin {
 		if _, ok := apiProcedures[name]; !ok {
-			t.Errorf("%s is listed as hook-only but the API does not define it", name)
+			t.Errorf("%s is built in but the API does not define it", name)
 		}
 	}
 	for _, service := range serviceNames() {
@@ -54,6 +62,36 @@ func TestEveryProcedureIsAnswered(t *testing.T) {
 			t.Errorf("service %s is not mounted", service)
 		}
 	}
+
+	// A procedure without a built-in answer answers UNIMPLEMENTED until a test
+	// sets a hook. The fake holds no projects, so ListProjects is one.
+	if !unanswered[workspacev1connect.ProjectServiceListProjectsProcedure] {
+		t.Fatalf("%s has a built-in answer now; check another unanswered procedure here",
+			workspacev1connect.ProjectServiceListProjectsProcedure)
+	}
+	_, err := tt.Client().Project().ListProjects(context.Background(),
+		connect.NewRequest(&workspacev1.ListProjectsRequest{}))
+	if got := connect.CodeOf(err); got != connect.CodeUnimplemented {
+		t.Fatalf("ListProjects without a hook: %v, want %s", err, connect.CodeUnimplemented)
+	}
+}
+
+// unanswered returns, in order, the procedures of the Workspace API that the
+// fake has no built-in answer for: they answer UNIMPLEMENTED until a test sets
+// a hook.
+func (f *Fake) unanswered() []string {
+	var names []string
+	for name := range apiProcedures {
+		if _, ok := f.builtin[name]; ok {
+			continue
+		}
+		if _, ok := f.builtinStream[name]; ok {
+			continue
+		}
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
 }
 
 // TestValidateHook proves a hook whose types do not match its procedure is

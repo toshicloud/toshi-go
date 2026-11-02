@@ -53,11 +53,11 @@
 //     an instant has that instant as its next one. An unknown alarm is
 //     NOT_FOUND.
 //
-// Every other procedure is hook-only. An unhooked procedure the state machine
-// does not cover answers UNIMPLEMENTED, naming the procedure and the function
-// that supplies an answer: On for a unary procedure, OnServerStream for a
-// server stream, OnBidi for a bidirectional stream. A hook replaces the state
-// machine for its procedure.
+// Every other procedure has no built-in answer: it answers UNIMPLEMENTED,
+// naming the procedure and the function that supplies an answer, until a test
+// does: On for a unary procedure, OnServerStream for a server stream, OnBidi
+// for a bidirectional stream. A hook replaces the state machine for its
+// procedure.
 //
 // Calls returns every call the fake received, in order, with its request and
 // its headers.
