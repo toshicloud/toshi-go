@@ -13,7 +13,7 @@ import (
 )
 
 // defaultStartingDeadline is how late a missed instant may be published when
-// SetServiceAlarm names no deadline.
+// PutServiceAlarm names no deadline.
 const defaultStartingDeadline = 10 * time.Minute
 
 // maxOccurrences is how many occurrences GetServiceAlarm returns.
@@ -32,9 +32,9 @@ type alarm struct {
 	occurrences []*workspacev1.ServiceAlarmOccurrence
 }
 
-// setServiceAlarm creates the alarm at generation 1, or replaces it at the
+// putServiceAlarm creates the alarm at generation 1, or replaces it at the
 // next generation, resumed.
-func (f *Fake) setServiceAlarm(_ context.Context, request *workspacev1.SetServiceAlarmRequest) (*workspacev1.SetServiceAlarmResponse, error) {
+func (f *Fake) putServiceAlarm(_ context.Context, request *workspacev1.PutServiceAlarmRequest) (*workspacev1.PutServiceAlarmResponse, error) {
 	set := &workspacev1.ServiceAlarm{
 		Name:             request.GetName(),
 		Timezone:         request.GetTimezone(),
@@ -46,9 +46,9 @@ func (f *Fake) setServiceAlarm(_ context.Context, request *workspacev1.SetServic
 		Generation:       1,
 	}
 	switch schedule := request.GetSchedule().(type) {
-	case *workspacev1.SetServiceAlarmRequest_Cron:
+	case *workspacev1.PutServiceAlarmRequest_Cron:
 		set.Schedule = &workspacev1.ServiceAlarm_Cron{Cron: schedule.Cron}
-	case *workspacev1.SetServiceAlarmRequest_At:
+	case *workspacev1.PutServiceAlarmRequest_At:
 		set.Schedule = &workspacev1.ServiceAlarm_At{At: schedule.At}
 		set.NextAt = schedule.At
 	}
@@ -68,7 +68,7 @@ func (f *Fake) setServiceAlarm(_ context.Context, request *workspacev1.SetServic
 	} else {
 		f.alarms[key] = &alarm{alarm: set}
 	}
-	return &workspacev1.SetServiceAlarmResponse{Alarm: proto.CloneOf(set)}, nil
+	return &workspacev1.PutServiceAlarmResponse{Alarm: proto.CloneOf(set)}, nil
 }
 
 func (f *Fake) getServiceAlarm(_ context.Context, request *workspacev1.GetServiceAlarmRequest) (*workspacev1.GetServiceAlarmResponse, error) {
@@ -121,7 +121,7 @@ func (f *Fake) pauseServiceAlarm(_ context.Context, request *workspacev1.PauseSe
 	return &workspacev1.PauseServiceAlarmResponse{Alarm: proto.CloneOf(record.alarm)}, nil
 }
 
-func (f *Fake) resumeServiceAlarm(_ context.Context, request *workspacev1.ResumeServiceAlarmRequest) (*workspacev1.ResumeServiceAlarmResponse, error) {
+func (f *Fake) unpauseServiceAlarm(_ context.Context, request *workspacev1.UnpauseServiceAlarmRequest) (*workspacev1.UnpauseServiceAlarmResponse, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	record, err := f.alarm(request.GetServiceId(), request.GetName())
@@ -129,7 +129,7 @@ func (f *Fake) resumeServiceAlarm(_ context.Context, request *workspacev1.Resume
 		return nil, err
 	}
 	record.alarm.Paused = false
-	return &workspacev1.ResumeServiceAlarmResponse{Alarm: proto.CloneOf(record.alarm)}, nil
+	return &workspacev1.UnpauseServiceAlarmResponse{Alarm: proto.CloneOf(record.alarm)}, nil
 }
 
 // runServiceAlarmNow records a manual occurrence at the alarm's generation. A

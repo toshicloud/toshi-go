@@ -246,12 +246,12 @@ func (f *Fake) registerBuiltins() {
 	f.builtin[workspacev1connect.WorkloadServiceGetSandboxProcedure] = unaryAnswer(f.getSandbox)
 	f.builtin[workspacev1connect.WorkloadServiceListSandboxesProcedure] = unaryAnswer(f.listSandboxes)
 	f.builtin[workspacev1connect.WorkloadServiceWaitSandboxProcedure] = unaryAnswer(f.waitSandbox)
-	f.builtin[workspacev1connect.WorkloadServiceSetServiceAlarmProcedure] = unaryAnswer(f.setServiceAlarm)
+	f.builtin[workspacev1connect.WorkloadServicePutServiceAlarmProcedure] = unaryAnswer(f.putServiceAlarm)
 	f.builtin[workspacev1connect.WorkloadServiceGetServiceAlarmProcedure] = unaryAnswer(f.getServiceAlarm)
 	f.builtin[workspacev1connect.WorkloadServiceListServiceAlarmsProcedure] = unaryAnswer(f.listServiceAlarms)
 	f.builtin[workspacev1connect.WorkloadServiceDeleteServiceAlarmProcedure] = unaryAnswer(f.deleteServiceAlarm)
 	f.builtin[workspacev1connect.WorkloadServicePauseServiceAlarmProcedure] = unaryAnswer(f.pauseServiceAlarm)
-	f.builtin[workspacev1connect.WorkloadServiceResumeServiceAlarmProcedure] = unaryAnswer(f.resumeServiceAlarm)
+	f.builtin[workspacev1connect.WorkloadServiceUnpauseServiceAlarmProcedure] = unaryAnswer(f.unpauseServiceAlarm)
 	f.builtin[workspacev1connect.WorkloadServiceRunServiceAlarmNowProcedure] = unaryAnswer(f.runServiceAlarmNow)
 
 	f.builtinStream[workspacev1connect.WorkloadServiceWatchJobsProcedure] = f.watchJobs

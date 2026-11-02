@@ -46,8 +46,8 @@ comes from an interceptor, as [Operator calls](#operator-calls) shows.
 `Workload().Sandboxes().ExecuteCommand`
 runs a command without standard input. `Workload().Services()` mints, lists
 and revokes the share links of a service's provided names, keeps its alarms
-(`SetAlarm`, `GetAlarm`, `ListAlarms`, `DeleteAlarm`, `PauseAlarm`,
-`ResumeAlarm`, `RunAlarmNow`), and runs its recipe's sign-in programs
+(`PutServiceAlarm`, `GetAlarm`, `ListAlarms`, `DeleteAlarm`, `PauseAlarm`,
+`UnpauseServiceAlarm`, `RunAlarmNow`), and runs its recipe's sign-in programs
 (`StartSignIn`, `AnswerSignIn`, `CancelSignIn`, `GetSignInStatus`).
 `Project()`, `Secret()`, `Webhook()`, `Display()`, `Endpoint()`, `Recording()`,
 `Volume()`, `Artifact()`, `ArtifactUpload()`, `Workspace()`, `HostJob()`,

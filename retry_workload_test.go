@@ -28,7 +28,7 @@ type workloadRetries struct {
 	runAlarmNowKeys []string
 }
 
-func (b *workloadRetries) SetServiceAlarm(context.Context, *connect.Request[workspacev1.SetServiceAlarmRequest]) (*connect.Response[workspacev1.SetServiceAlarmResponse], error) {
+func (b *workloadRetries) PutServiceAlarm(context.Context, *connect.Request[workspacev1.PutServiceAlarmRequest]) (*connect.Response[workspacev1.PutServiceAlarmResponse], error) {
 	b.setAlarmCalls.Add(1)
 	return nil, connect.NewError(connect.CodeUnavailable, errors.New("down"))
 }
@@ -60,21 +60,21 @@ func workloadRetriesHandler(b *workloadRetries) http.Handler {
 	return mux
 }
 
-// TestSetAlarmAndEmitEventAreNotRetried proves SetAlarm and EmitEvent make
+// TestPutServiceAlarmAndEmitEventAreNotRetried proves PutServiceAlarm and EmitEvent make
 // one try, and the UNAVAILABLE answer reaches the caller.
-func TestSetAlarmAndEmitEventAreNotRetried(t *testing.T) {
+func TestPutServiceAlarmAndEmitEventAreNotRetried(t *testing.T) {
 	sleeps(t, nil)
 	b := &workloadRetries{}
 	client := waitClient(t, workloadRetriesHandler(b))
 	ctx := context.Background()
 
-	if _, err := client.Workload().Services().SetAlarm(ctx, &workspacev1.SetServiceAlarmRequest{
+	if _, err := client.Workload().Services().PutServiceAlarm(ctx, &workspacev1.PutServiceAlarmRequest{
 		ServiceId: "svc-1", Name: "nightly",
 	}); connect.CodeOf(err) != connect.CodeUnavailable {
-		t.Fatalf("SetAlarm: %v, want UNAVAILABLE", err)
+		t.Fatalf("PutServiceAlarm: %v, want UNAVAILABLE", err)
 	}
 	if calls := b.setAlarmCalls.Load(); calls != 1 {
-		t.Fatalf("SetAlarm made %d tries, want 1", calls)
+		t.Fatalf("PutServiceAlarm made %d tries, want 1", calls)
 	}
 
 	if _, err := client.Workload().EmitEvent(ctx, &workspacev1.EmitWorkloadEventRequest{

@@ -20,23 +20,23 @@ func TestServiceAlarmsThroughTheClient(t *testing.T) {
 	client := tt.Client()
 	alarms := client.Workload().Services()
 
-	set, err := alarms.SetAlarm(ctx, &workspacev1.SetServiceAlarmRequest{
+	set, err := alarms.PutServiceAlarm(ctx, &workspacev1.PutServiceAlarmRequest{
 		ServiceId: "svc-1",
 		Name:      "nightly",
-		Schedule:  &workspacev1.SetServiceAlarmRequest_Cron{Cron: "0 3 * * *"},
+		Schedule:  &workspacev1.PutServiceAlarmRequest_Cron{Cron: "0 3 * * *"},
 		Timezone:  "Europe/Berlin",
 		Endpoint:  "reports",
 		Event:     "report.due",
 		Data:      []byte(`{"kind":"nightly"}`),
 	})
 	if err != nil {
-		t.Fatalf("SetAlarm: %v", err)
+		t.Fatalf("PutServiceAlarm: %v", err)
 	}
 	if got := set.GetAlarm(); got.GetName() != "nightly" || got.GetCron() != "0 3 * * *" ||
 		got.GetTimezone() != "Europe/Berlin" || got.GetEndpoint() != "reports" ||
 		got.GetEvent() != "report.due" || string(got.GetData()) != `{"kind":"nightly"}` ||
 		got.GetGeneration() != 1 {
-		t.Fatalf("SetAlarm answered %v", got)
+		t.Fatalf("PutServiceAlarm answered %v", got)
 	}
 
 	got, err := alarms.GetAlarm(ctx, &workspacev1.GetServiceAlarmRequest{ServiceId: "svc-1", Name: "nightly"})
@@ -51,14 +51,14 @@ func TestServiceAlarmsThroughTheClient(t *testing.T) {
 		t.Fatalf("GetAlarm answered occurrences %v before any run", occurrences)
 	}
 
-	if _, err := alarms.SetAlarm(ctx, &workspacev1.SetServiceAlarmRequest{
+	if _, err := alarms.PutServiceAlarm(ctx, &workspacev1.PutServiceAlarmRequest{
 		ServiceId: "svc-1",
 		Name:      "hourly",
-		Schedule:  &workspacev1.SetServiceAlarmRequest_Cron{Cron: "0 * * * *"},
+		Schedule:  &workspacev1.PutServiceAlarmRequest_Cron{Cron: "0 * * * *"},
 		Endpoint:  "reports",
 		Event:     "report.hourly",
 	}); err != nil {
-		t.Fatalf("SetAlarm hourly: %v", err)
+		t.Fatalf("PutServiceAlarm hourly: %v", err)
 	}
 	list, err := alarms.ListAlarms(ctx, &workspacev1.ListServiceAlarmsRequest{ServiceId: "svc-1"})
 	if err != nil {
@@ -76,12 +76,12 @@ func TestServiceAlarmsThroughTheClient(t *testing.T) {
 		t.Fatalf("PauseAlarm answered %v, want the alarm paused", paused.GetAlarm())
 	}
 
-	resumed, err := alarms.ResumeAlarm(ctx, &workspacev1.ResumeServiceAlarmRequest{ServiceId: "svc-1", Name: "nightly"})
+	resumed, err := alarms.UnpauseServiceAlarm(ctx, &workspacev1.UnpauseServiceAlarmRequest{ServiceId: "svc-1", Name: "nightly"})
 	if err != nil {
-		t.Fatalf("ResumeAlarm: %v", err)
+		t.Fatalf("UnpauseServiceAlarm: %v", err)
 	}
 	if resumed.GetAlarm().GetPaused() {
-		t.Fatalf("ResumeAlarm answered %v, want the alarm resumed", resumed.GetAlarm())
+		t.Fatalf("UnpauseServiceAlarm answered %v, want the alarm resumed", resumed.GetAlarm())
 	}
 
 	ran, err := alarms.RunAlarmNow(ctx, &workspacev1.RunServiceAlarmNowRequest{ServiceId: "svc-1", Name: "nightly"})

@@ -4,8 +4,8 @@
 // written by this module: a job's calls under Workload().Jobs(), a sandbox's
 // under Workload().Sandboxes(), a service's under Workload().Services(), and
 // the calls that span the three on Workload() itself. Workload().Services()
-// also keeps a service's alarms (SetAlarm, GetAlarm, ListAlarms, DeleteAlarm,
-// PauseAlarm, ResumeAlarm, RunAlarmNow) and runs its recipe's sign-in
+// also keeps a service's alarms (PutServiceAlarm, GetAlarm, ListAlarms, DeleteAlarm,
+// PauseAlarm, UnpauseServiceAlarm, RunAlarmNow) and runs its recipe's sign-in
 // programs (StartSignIn, AnswerSignIn, CancelSignIn, GetSignInStatus);
 // Workload().EmitEvent appends an event to any of the three event logs.
 // Workload().HoldWorkload and Workload().ReleaseWorkload place and lift an

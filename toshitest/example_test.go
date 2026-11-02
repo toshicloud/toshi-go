@@ -65,10 +65,10 @@ func ExampleFake_serviceAlarms() {
 
 	ctx := context.Background()
 	client := tt.Client()
-	_, err := client.Workload().Services().SetAlarm(ctx, &workspacev1.SetServiceAlarmRequest{
+	_, err := client.Workload().Services().PutServiceAlarm(ctx, &workspacev1.PutServiceAlarmRequest{
 		ServiceId: "svc-1",
 		Name:      "nightly",
-		Schedule:  &workspacev1.SetServiceAlarmRequest_Cron{Cron: "0 3 * * *"},
+		Schedule:  &workspacev1.PutServiceAlarmRequest_Cron{Cron: "0 3 * * *"},
 		Endpoint:  "reports",
 		Event:     "report.due",
 	})

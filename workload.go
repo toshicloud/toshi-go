@@ -433,18 +433,18 @@ func (s ServicesClient) Wake(ctx context.Context, req *workspacev1.WakeServiceRe
 	return resp.Msg, nil
 }
 
-// Hold takes or renews the caller's hold on a started service.
-func (s ServicesClient) Hold(ctx context.Context, req *workspacev1.HoldServiceRequest) (*workspacev1.HoldServiceResponse, error) {
-	resp, err := s.call.svc.HoldService(ctx, connect.NewRequest(req))
+// KeepServiceAwake takes or renews the caller's hold on a started service.
+func (s ServicesClient) KeepServiceAwake(ctx context.Context, req *workspacev1.KeepServiceAwakeRequest) (*workspacev1.KeepServiceAwakeResponse, error) {
+	resp, err := s.call.svc.KeepServiceAwake(ctx, connect.NewRequest(req))
 	if err != nil {
 		return nil, err
 	}
 	return resp.Msg, nil
 }
 
-// Release drops the caller's hold on a service.
-func (s ServicesClient) Release(ctx context.Context, req *workspacev1.ReleaseServiceRequest) (*workspacev1.ReleaseServiceResponse, error) {
-	resp, err := s.call.svc.ReleaseService(ctx, connect.NewRequest(req))
+// ReleaseServiceAwake drops the caller's hold on a service.
+func (s ServicesClient) ReleaseServiceAwake(ctx context.Context, req *workspacev1.ReleaseServiceAwakeRequest) (*workspacev1.ReleaseServiceAwakeResponse, error) {
+	resp, err := s.call.svc.ReleaseServiceAwake(ctx, connect.NewRequest(req))
 	if err != nil {
 		return nil, err
 	}
@@ -545,12 +545,12 @@ func (s ServicesClient) RevokeServiceShareLink(ctx context.Context, req *workspa
 	return resp.Msg, nil
 }
 
-// SetAlarm creates or replaces the service's alarm with this name and
+// PutServiceAlarm creates or replaces the service's alarm with this name and
 // returns it. At each instant of its schedule the alarm publishes its event,
 // with its data, on one of the service's event endpoints. Replacing an alarm
 // raises its generation and schedules it again from now.
-func (s ServicesClient) SetAlarm(ctx context.Context, req *workspacev1.SetServiceAlarmRequest) (*workspacev1.SetServiceAlarmResponse, error) {
-	resp, err := s.call.svc.SetServiceAlarm(ctx, connect.NewRequest(req))
+func (s ServicesClient) PutServiceAlarm(ctx context.Context, req *workspacev1.PutServiceAlarmRequest) (*workspacev1.PutServiceAlarmResponse, error) {
+	resp, err := s.call.svc.PutServiceAlarm(ctx, connect.NewRequest(req))
 	if err != nil {
 		return nil, err
 	}
@@ -596,12 +596,12 @@ func (s ServicesClient) PauseAlarm(ctx context.Context, req *workspacev1.PauseSe
 	return resp.Msg, nil
 }
 
-// ResumeAlarm starts a paused alarm again from the next instant of its
+// UnpauseServiceAlarm starts a paused alarm again from the next instant of its
 // schedule; instants that passed while it was paused are not published. An
 // alarm with a single instant that has passed stays without a next instant.
 // Resuming an alarm that is not paused changes nothing.
-func (s ServicesClient) ResumeAlarm(ctx context.Context, req *workspacev1.ResumeServiceAlarmRequest) (*workspacev1.ResumeServiceAlarmResponse, error) {
-	resp, err := s.call.svc.ResumeServiceAlarm(ctx, connect.NewRequest(req))
+func (s ServicesClient) UnpauseServiceAlarm(ctx context.Context, req *workspacev1.UnpauseServiceAlarmRequest) (*workspacev1.UnpauseServiceAlarmResponse, error) {
+	resp, err := s.call.svc.UnpauseServiceAlarm(ctx, connect.NewRequest(req))
 	if err != nil {
 		return nil, err
 	}
