@@ -15,14 +15,14 @@
 <p align="center">
   <a href="docs/usage.md">Get started</a> ·
   <a href="docs/usage.md">Docs</a> ·
-  <a href="https://github.com/toshicloud/toshi-go/issues">Issues</a>
+  <a href="https://github.com/toshicloud/cloud-go/issues">Issues</a>
 </p>
 
 A Go client for the Toshi Workspace API, `toshi.workspace.v1`, for programs that start jobs, sandboxes and services on Toshi, follow them and read their output. It retries safe calls, resumes watches and ships a fake Toshi for tests.
 
 > **Early stage.** The module stays at v0.x until a Toshi release serves the API; the latest release is the one to use.
 > Interfaces may change before 1.0.
-> Read the [release notes](https://github.com/toshicloud/toshi-go/releases) when upgrading.
+> Read the [release notes](https://github.com/toshicloud/cloud-go/releases) when upgrading.
 
 ## Quick start
 
@@ -102,12 +102,12 @@ log.Fatal(http.ListenAndServe(":8080", nil))
 - [Generated code, upgrading and versions](docs/upgrading.md)
 - [Package reference](https://pkg.go.dev/go.toshicloud.io/toshi) on pkg.go.dev
 - [The Toshi API](https://github.com/toshicloud/toshi-api) the client calls
-- [Releases](https://github.com/toshicloud/toshi-go/releases)
+- [Releases](https://github.com/toshicloud/cloud-go/releases)
 - [Security](SECURITY.md) · [Licence](LICENSE)
 
 ## Status and support
 
-Issues and questions go to [GitHub issues](https://github.com/toshicloud/toshi-go/issues).
+Issues and questions go to [GitHub issues](https://github.com/toshicloud/cloud-go/issues).
 Security reports follow [SECURITY.md](SECURITY.md).
 
 Apache-2.0
