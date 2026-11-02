@@ -32,7 +32,7 @@ func TestAnswerPromptThroughTheClient(t *testing.T) {
 				Id:         "event-1",
 				Type:       workspacev1.EventType_EVENT_TYPE_AGENT_ANSWERED,
 				WorkloadId: "job-1",
-				Time:       timestamppb.New(answered),
+				OccurredAt: timestamppb.New(answered),
 			}}, nil
 		})
 
@@ -46,7 +46,7 @@ func TestAnswerPromptThroughTheClient(t *testing.T) {
 	}
 	if got := answer.GetEvent(); got.GetId() != "event-1" ||
 		got.GetType() != workspacev1.EventType_EVENT_TYPE_AGENT_ANSWERED ||
-		got.GetWorkloadId() != "job-1" || !got.GetTime().AsTime().Equal(answered) {
+		got.GetWorkloadId() != "job-1" || !got.GetOccurredAt().AsTime().Equal(answered) {
 		t.Fatalf("AnswerPrompt answered %v", got)
 	}
 }

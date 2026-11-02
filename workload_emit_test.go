@@ -35,7 +35,7 @@ func TestEmitEventThroughTheClient(t *testing.T) {
 				Type:       workspacev1.EventType_EVENT_TYPE_EMITTED,
 				Name:       "deploy.done",
 				WorkloadId: "job-1",
-				Time:       timestamppb.New(emittedAt),
+				OccurredAt: timestamppb.New(emittedAt),
 			}}, nil
 		})
 
@@ -50,7 +50,7 @@ func TestEmitEventThroughTheClient(t *testing.T) {
 	event := resp.GetEvent()
 	if event.GetId() != "event-1" || event.GetType() != workspacev1.EventType_EVENT_TYPE_EMITTED ||
 		event.GetName() != "deploy.done" || event.GetWorkloadId() != "job-1" ||
-		!event.GetTime().AsTime().Equal(emittedAt) {
+		!event.GetOccurredAt().AsTime().Equal(emittedAt) {
 		t.Fatalf("EmitEvent answered %v", event)
 	}
 }
