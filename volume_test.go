@@ -27,7 +27,7 @@ func TestVolumeVersionsThroughTheClient(t *testing.T) {
 			return &workspacev1.ListVolumesResponse{Volumes: []*workspacev1.Volume{{
 				Id: "vol-1", Name: "cache",
 				LatestVersion:     2,
-				LatestVersionTime: timestamppb.New(saved),
+				LatestVersionAt: timestamppb.New(saved),
 			}}}, nil
 		})
 	toshitest.On(tt, workspacev1connect.VolumeServiceListVolumeVersionsProcedure,
@@ -38,14 +38,14 @@ func TestVolumeVersionsThroughTheClient(t *testing.T) {
 			if request.GetPageToken() == "" {
 				return &workspacev1.ListVolumeVersionsResponse{
 					Versions: []*workspacev1.VolumeVersion{{
-						Number: 2, CreateTime: timestamppb.New(saved), SizeBytes: 4096,
+						Number: 2, CreatedAt: timestamppb.New(saved), SizeBytes: 4096,
 						Sha256: "0f1e", RestoredFrom: 1,
 					}},
 					NextPageToken: "page-2",
 				}, nil
 			}
 			return &workspacev1.ListVolumeVersionsResponse{
-				Versions: []*workspacev1.VolumeVersion{{Number: 1, CreateTime: timestamppb.New(saved.Add(-time.Hour)), SizeBytes: 2048}},
+				Versions: []*workspacev1.VolumeVersion{{Number: 1, CreatedAt: timestamppb.New(saved.Add(-time.Hour)), SizeBytes: 2048}},
 			}, nil
 		})
 	toshitest.On(tt, workspacev1connect.VolumeServiceRestoreVolumeProcedure,
@@ -55,7 +55,7 @@ func TestVolumeVersionsThroughTheClient(t *testing.T) {
 			}
 			return &workspacev1.RestoreVolumeResponse{
 				Version: &workspacev1.VolumeVersion{Number: 3, RestoredFrom: 1, SizeBytes: 2048},
-				Volume:  &workspacev1.Volume{Id: "vol-1", LatestVersion: 3, LatestVersionTime: timestamppb.New(saved.Add(time.Minute))},
+				Volume:  &workspacev1.Volume{Id: "vol-1", LatestVersion: 3, LatestVersionAt: timestamppb.New(saved.Add(time.Minute))},
 			}, nil
 		})
 
@@ -65,8 +65,8 @@ func TestVolumeVersionsThroughTheClient(t *testing.T) {
 		t.Fatal(err)
 	}
 	volume := volumes.Msg.GetVolumes()[0]
-	if volume.GetLatestVersion() != 2 || !volume.GetLatestVersionTime().AsTime().Equal(saved) {
-		t.Fatalf("the volume's newest version is %d at %v", volume.GetLatestVersion(), volume.GetLatestVersionTime())
+	if volume.GetLatestVersion() != 2 || !volume.GetLatestVersionAt().AsTime().Equal(saved) {
+		t.Fatalf("the volume's newest version is %d at %v", volume.GetLatestVersion(), volume.GetLatestVersionAt())
 	}
 
 	first, err := client.Volume().ListVolumeVersions(ctx, connect.NewRequest(&workspacev1.ListVolumeVersionsRequest{VolumeId: "vol-1"}))
@@ -74,7 +74,7 @@ func TestVolumeVersionsThroughTheClient(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got := first.Msg.GetVersions()[0]; got.GetNumber() != 2 || got.GetRestoredFrom() != 1 ||
-		got.GetSizeBytes() != 4096 || got.GetSha256() != "0f1e" || !got.GetCreateTime().AsTime().Equal(saved) {
+		got.GetSizeBytes() != 4096 || got.GetSha256() != "0f1e" || !got.GetCreatedAt().AsTime().Equal(saved) {
 		t.Fatalf("the newest version is %v", got)
 	}
 	second, err := client.Volume().ListVolumeVersions(ctx, connect.NewRequest(&workspacev1.ListVolumeVersionsRequest{
