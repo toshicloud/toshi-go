@@ -566,14 +566,21 @@ func (s ServicesClient) GetAlarm(ctx context.Context, req *workspacev1.GetServic
 	return resp.Msg, nil
 }
 
-// ListAlarms returns all of the service's alarms, by name, in one answer.
-// The request has no page token, so there is no All iterator.
+// ListAlarms returns a page of the service's alarms, by name.
 func (s ServicesClient) ListAlarms(ctx context.Context, req *workspacev1.ListServiceAlarmsRequest) (*workspacev1.ListServiceAlarmsResponse, error) {
 	resp, err := s.call.svc.ListServiceAlarms(ctx, connect.NewRequest(req))
 	if err != nil {
 		return nil, err
 	}
 	return resp.Msg, nil
+}
+
+// AllAlarms yields every alarm ListAlarms returns, by name, following the
+// page token from one page to the next.
+func (s ServicesClient) AllAlarms(ctx context.Context, req *workspacev1.ListServiceAlarmsRequest) iter.Seq2[*workspacev1.ServiceAlarm, error] {
+	return Paginate(ctx, req, s.call.svc.ListServiceAlarms, func(resp *workspacev1.ListServiceAlarmsResponse) []*workspacev1.ServiceAlarm {
+		return resp.Alarms
+	})
 }
 
 // DeleteAlarm removes an alarm and its occurrences. Messages it already

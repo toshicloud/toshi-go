@@ -2,6 +2,7 @@ package toshi_test
 
 import (
 	"context"
+	"slices"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -64,8 +65,19 @@ func TestServiceAlarmsThroughTheClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListAlarms: %v", err)
 	}
-	if names := alarmNames(list.GetAlarms()); len(names) != 2 || names[0] != "hourly" || names[1] != "nightly" {
+	names := alarmNames(list.GetAlarms())
+	if len(names) != 2 || names[0] != "hourly" || names[1] != "nightly" {
 		t.Fatalf("ListAlarms answered %v, want hourly and nightly by name", names)
+	}
+	var walked []string
+	for alarm, err := range alarms.AllAlarms(ctx, &workspacev1.ListServiceAlarmsRequest{ServiceId: "svc-1"}) {
+		if err != nil {
+			t.Fatalf("AllAlarms: %v", err)
+		}
+		walked = append(walked, alarm.GetName())
+	}
+	if !slices.Equal(walked, names) {
+		t.Fatalf("AllAlarms answered %v, want %v", walked, names)
 	}
 
 	paused, err := alarms.PauseAlarm(ctx, &workspacev1.PauseServiceAlarmRequest{ServiceId: "svc-1", Name: "nightly"})
