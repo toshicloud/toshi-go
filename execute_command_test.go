@@ -21,7 +21,7 @@ func TestExecuteCommandThroughTheClient(t *testing.T) {
 
 	toshitest.OnServerStream(tt, workspacev1connect.WorkloadServiceExecuteCommandProcedure,
 		func(_ context.Context, request *workspacev1.ExecuteCommandRequest, stream *toshitest.ServerStream[workspacev1.ExecuteCommandResponse]) error {
-			if request.GetSandboxId() != "sb-1" || len(request.GetCommand().GetArgv()) != 2 {
+			if request.GetWorkloadId() != "sb-1" || len(request.GetCommand().GetArgv()) != 2 {
 				t.Errorf("ExecuteCommand asked for %v", request)
 			}
 			if request.GetProject() != "default" || request.GetEnvironment() != "production" {
@@ -45,8 +45,8 @@ func TestExecuteCommandThroughTheClient(t *testing.T) {
 		})
 
 	stream, err := tt.Client().Workload().Sandboxes().ExecuteCommand(ctx, &workspacev1.ExecuteCommandRequest{
-		SandboxId: "sb-1",
-		Command:   &workspacev1.Command{Argv: []string{"echo", "hello"}},
+		WorkloadId: "sb-1",
+		Command:    &workspacev1.Command{Argv: []string{"echo", "hello"}},
 	})
 	if err != nil {
 		t.Fatal(err)
