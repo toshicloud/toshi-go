@@ -583,7 +583,7 @@ func (f *Fake) execute(_ context.Context, conn connect.StreamingHandlerConn, _ p
 			errors.New("toshitest: Execute needs a start message"))
 	}
 	f.mu.Lock()
-	record, ok := f.executions[start.GetSandboxId()]
+	record, ok := f.executions[start.GetWorkloadId()]
 	if !ok {
 		record = &execution{}
 	}

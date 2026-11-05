@@ -233,7 +233,7 @@ func TestScopeOnExecuteStart(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		p, err := client.Workload().Sandboxes().Execute(ctx, &workspacev1.ExecuteStart{
-			SandboxId:   "sb-1",
+			WorkloadId:  "sb-1",
 			Project:     project,
 			Environment: environment,
 		})

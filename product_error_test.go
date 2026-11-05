@@ -201,7 +201,7 @@ func TestProductErrorThroughWaitWatchAndExecute(t *testing.T) {
 				return turnedOff(t)
 			})
 		client := tt.Client(toshi.WithScope("proj", "env"))
-		_, err := client.Workload().Sandboxes().Execute(context.Background(), &workspacev1.ExecuteStart{SandboxId: "sb-1"})
+		_, err := client.Workload().Sandboxes().Execute(context.Background(), &workspacev1.ExecuteStart{WorkloadId: "sb-1"})
 		check(t, err)
 	})
 }

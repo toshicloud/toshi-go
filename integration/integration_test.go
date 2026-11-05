@@ -544,8 +544,8 @@ func TestIntegration(t *testing.T) {
 
 	t.Run("Execute", func(t *testing.T) {
 		_, err := client.Workload().Sandboxes().Execute(ctx, &workspacev1.ExecuteStart{
-			SandboxId: firstID,
-			Command:   &workspacev1.Command{Argv: []string{"true"}},
+			WorkloadId: firstID,
+			Command:    &workspacev1.Command{Argv: []string{"true"}},
 		})
 		if connect.CodeOf(err) != connect.CodeFailedPrecondition {
 			t.Fatalf("Execute: %v, want FAILED_PRECONDITION", err)

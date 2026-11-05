@@ -99,8 +99,8 @@ func TestExecute(t *testing.T) {
 	tt.Execute("sb-1").Stdout("hello\n").Stderr("warn\n").ExitCode(0)
 
 	process, err := tt.Client().Workload().Sandboxes().Execute(context.Background(), &workspacev1.ExecuteStart{
-		SandboxId: "sb-1",
-		Command:   &workspacev1.Command{Argv: []string{"echo", "hello"}},
+		WorkloadId: "sb-1",
+		Command:    &workspacev1.Command{Argv: []string{"echo", "hello"}},
 	})
 	if err != nil {
 		t.Fatalf("Execute: %v", err)
@@ -146,7 +146,7 @@ func TestExecuteHooked(t *testing.T) {
 			})
 		})
 
-	process, err := tt.Client().Workload().Sandboxes().Execute(context.Background(), &workspacev1.ExecuteStart{SandboxId: "sb-1"})
+	process, err := tt.Client().Workload().Sandboxes().Execute(context.Background(), &workspacev1.ExecuteStart{WorkloadId: "sb-1"})
 	if err != nil {
 		t.Fatalf("Execute: %v", err)
 	}

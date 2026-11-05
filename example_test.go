@@ -244,8 +244,8 @@ func ExampleSandboxesClient_Execute() {
 		log.Fatal(err)
 	}
 	proc, err := client.Workload().Sandboxes().Execute(ctx, &workspacev1.ExecuteStart{
-		SandboxId: "sbx-123",
-		Command:   &workspacev1.Command{Argv: []string{"tr", "a-z", "A-Z"}},
+		WorkloadId: "sbx-123",
+		Command:    &workspacev1.Command{Argv: []string{"tr", "a-z", "A-Z"}},
 	})
 	if err != nil {
 		log.Fatal(err)
